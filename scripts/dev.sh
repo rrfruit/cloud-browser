@@ -19,7 +19,7 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
 fi
 
 echo "==> 启动容器: ${CONTAINER_NAME}"
-docker run -d \
+docker run \
   --name "${CONTAINER_NAME}" \
   -p 3000:3000 \
   -p 6080:6080 \

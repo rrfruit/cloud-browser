@@ -4,7 +4,7 @@
   "description": "",
   "license": "ISC",
   "author": "",
-  "type": "commonjs",
+  "type": "module",
   "main": "main.js",
   "scripts": {
     "dev": "./scripts/dev.sh",
@@ -13,6 +13,8 @@
   "dependencies": {
     "@hono/node-server": "^1.19.11",
     "hono": "^4.12.8",
-    "puppeteer": "^24.4.0"
+    "puppeteer": "^24.4.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
