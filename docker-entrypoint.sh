@@ -2,11 +2,15 @@
 set -e
 
 echo "Starting Xvfb on display :99"
-Xvfb :99 -ac -screen 0 "${XVFB_WHD:-1280x720x16}" -nolisten tcp &
+Xvfb "${DISPLAY}" -screen 0 "${XVFB_WHD}" -ac -nolisten tcp +extension RANDR >/tmp/xvfb.log 2>&1 &
+sleep 1
+
+echo "Starting Fluxbox window manager"
+fluxbox &
 sleep 1
 
 echo "Starting x11vnc on port ${VNC_PORT:-5900}"
-x11vnc -display :99 \
+x11vnc -display "${DISPLAY}" \
   -forever \
   -shared \
   -passwd "${VNC_PASSWORD:-password}" \
@@ -18,6 +22,6 @@ websockify --web /usr/share/novnc/ \
   "${NOVNC_PORT:-6080}" \
   "localhost:${VNC_PORT:-5900}" &
 
-echo "noVNC available at http://localhost:${NOVNC_PORT:-6080}/vnc.html"
+echo "noVNC available at http://localhost:${NOVNC_PORT:-6080}/vnc.html#password=${VNC_PASSWORD:-password}"
 echo "Executing command $@"
 exec "$@"

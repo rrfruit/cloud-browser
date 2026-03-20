@@ -1,7 +1,7 @@
 FROM zenika/alpine-chrome:with-node
 
 USER 0
-RUN apk add --no-cache xvfb x11vnc novnc
+RUN apk add --no-cache xvfb x11vnc novnc fluxbox
 USER chrome
 
 ENV DISPLAY=:99 \
