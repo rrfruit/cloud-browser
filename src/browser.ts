@@ -99,8 +99,9 @@ async function destroySession(sessionId: string): Promise<void> {
 
   try {
     await entry.browser.close();
-  } catch {
+  } catch (e) {
     // process may already be gone
+    console.error("Error closing browser", e);
   }
 }
 
@@ -154,6 +155,7 @@ export async function createSession(
     instance = await puppeteer.launch({
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
       headless: false,
+      ignoreDefaultArgs: ['--enable-automation'],
       args: defaultLaunchArgs(args, cdpPort),
       userDataDir: userDataDirForSession(sessionId),
     });
