@@ -42,9 +42,10 @@ RUN npm run build && npm prune --omit=dev
 # 9223-9323: 每会话 CDP 端口池（与 CDP_PORT_MIN/MAX 一致，docker run 需映射整段）
 ENV CDP_PORT_MIN=9223 \
     CDP_PORT_MAX=9323
-EXPOSE 9222
-EXPOSE 9221
-EXPOSE 9223-9323/tcp
+
+EXPOSE 9221 # noVNC Web 访问端口
+EXPOSE 9222 # Node.js HTTP API 端口
+EXPOSE 9223-9323/tcp # 每会话 CDP 端口池（与 CDP_PORT_MIN/MAX 一致，docker run 需映射整段）
 
 VOLUME ["/data/chrome-profiles"]
 
