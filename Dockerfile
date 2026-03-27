@@ -26,11 +26,12 @@ ENV DISPLAY=:99 \
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD 1
 ENV PUPPETEER_EXECUTABLE_PATH /usr/bin/chromium-browser
 
-# 优先单独拷贝依赖清单，利用 Docker 层缓存加速后续构建
-COPY --chown=chrome package.json package-lock.json ./
-RUN npm install --omit=dev
+# 优先单独拷贝依赖清单与 TS 配置，利用 Docker 层缓存加速后续构建
+COPY --chown=chrome package.json package-lock.json tsconfig.json ./
+RUN npm install
 
 COPY --chown=chrome src/ ./src/
+RUN npm run build && npm prune --omit=dev
 
 # 3000: Node.js HTTP API 端口
 # 6080: noVNC Web 访问端口
@@ -42,4 +43,4 @@ EXPOSE 9222
 COPY --chown=chrome docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["node", "src/main.mjs"]
+CMD ["node", "dist/main.js"]

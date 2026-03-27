@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import healthRouter from "./routes/health.mjs";
-import browserRouter from "./routes/browser.mjs";
+import healthRouter from "./routes/health.js";
+import browserRouter from "./routes/browser.js";
 
 const app = new Hono();
 
