@@ -62,7 +62,9 @@ function ticketsMatch(expected: string, provided: string): boolean {
 
 function defaultLaunchArgs(extra: string[], cdpPort: number): string[] {
   return [
+    "--disable-infobars",
     "--no-sandbox",
+    "--disable-setuid-sandbox",
     "--disable-dev-shm-usage",
     "--disable-gpu",
     "--lang=zh-CN,zh",
