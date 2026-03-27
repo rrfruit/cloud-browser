@@ -1,44 +1,58 @@
 import { Hono } from "hono";
 import {
-  getState,
-  launchBrowser,
-  closeBrowser,
-  renewBrowser,
+  closeSession,
+  createSession,
+  getSessionCount,
+  renewSession,
 } from "../browser.js";
 
 const router = new Hono();
 
 router.get("/status", (c) => {
-  const { wsEndpoint } = getState();
-  return c.json(
-    wsEndpoint
-      ? { running: true, wsEndpoint }
-      : { running: false, wsEndpoint: null }
-  );
+  return c.json({ sessionCount: getSessionCount() });
 });
 
-router.post("/launch", async (c) => {
-  const body = (await c.req.json()) as { id?: string; args?: string[] };
-  const { created, wsEndpoint } = await launchBrowser(
-    body.id ?? "default",
-    body.args ?? []
-  );
-  return c.json({ running: true, wsEndpoint }, created ? 201 : 200);
+router.post("/session", async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as {
+    sessionId?: string;
+    args?: string[];
+  };
+  const result = await createSession(body.sessionId, body.args ?? []);
+  if (!result.ok) {
+    const status =
+      result.error === "INVALID_SESSION_ID" ? 400 : 409;
+    return c.json({ error: result.error }, status);
+  }
+  const { sessionId, ticket, wsEndpoint, expiresAt } = result;
+  return c.json({ sessionId, ticket, wsEndpoint, expiresAt }, 201);
 });
 
-router.post("/close", async (c) => {
-  await c.req.json().catch(() => ({}));
-  const stopped = await closeBrowser();
-  return c.json({ running: false }, stopped ? 200 : 200);
+router.post("/session/:id/renew", async (c) => {
+  const sessionId = c.req.param("id");
+  const body = (await c.req.json().catch(() => ({}))) as { ticket?: string };
+  const ticket = body.ticket ?? "";
+
+  const result = renewSession(sessionId, ticket);
+  if (!result.ok) {
+    const status = result.error === "NOT_FOUND" ? 404 : 401;
+    return c.json({ error: result.error }, status);
+  }
+
+  return c.json({ expiresAt: result.expiresAt });
 });
 
-router.post("/renew", async (c) => {
-  const body = (await c.req.json()) as { id?: string; args?: string[] };
-  const { created, wsEndpoint } = await renewBrowser(
-    body.id ?? "default",
-    body.args ?? []
-  );
-  return c.json({ running: true, wsEndpoint }, created ? 201 : 200);
+router.post("/session/:id/close", async (c) => {
+  const sessionId = c.req.param("id");
+  const body = (await c.req.json().catch(() => ({}))) as { ticket?: string };
+  const ticket = body.ticket ?? "";
+
+  const result = await closeSession(sessionId, ticket);
+  if (!result.ok) {
+    const status = result.error === "NOT_FOUND" ? 404 : 401;
+    return c.json({ error: result.error }, status);
+  }
+
+  return c.json({ closed: true });
 });
 
 export default router;
