@@ -42,4 +42,4 @@ EXPOSE 9222
 COPY --chown=chrome docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["node", "src/main.js"]
+CMD ["node", "src/main.mjs"]

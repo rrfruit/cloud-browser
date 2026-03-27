@@ -1,21 +1,23 @@
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 
-puppeteer.use(StealthPlugin()); 
+puppeteer.use(StealthPlugin());
 
 let browser = null;
 let wsEndpoint = null;
+
+const sessions = new Map();
 
 export function getState() {
   return { browser, wsEndpoint };
 }
 
-export async function startBrowser() {
-  if (browser) {
+export async function launchBrowser(id, args) {
+  if (sessions.has(id)) {
     return { wsEndpoint, created: false };
   }
 
-  browser = await puppeteer.launch({
+  const browser = await puppeteer.launch({
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
     headless: false,
     args: [
@@ -23,8 +25,9 @@ export async function startBrowser() {
       "--disable-dev-shm-usage",
       "--disable-gpu",
       `--window-size=${process.env.VIEWPORT_WIDTH},${process.env.VIEWPORT_HEIGHT}`,
-      "--remote-debugging-port=9222",
+      "--remote-debugging-port=0",
       "--remote-debugging-address=0.0.0.0",
+      ...args,
     ],
   });
 
@@ -38,7 +41,7 @@ export async function startBrowser() {
   return { wsEndpoint, created: true };
 }
 
-export async function stopBrowser() {
+export async function closeBrowser() {
   if (!browser) {
     return false;
   }
