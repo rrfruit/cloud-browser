@@ -21,7 +21,7 @@ ENV DISPLAY=:99 \
     # VNC 原生协议端口（供 VNC 客户端直连）
     VNC_PORT=5900 \
     # noVNC WebSocket 端口（供浏览器访问）
-    NOVNC_PORT=6080 \
+    NOVNC_PORT=9221 \
     VNC_PASSWORD=password
 
 # 跳过 Puppeteer 内置 Chromium 下载，直接使用镜像中已有的系统 Chromium
@@ -37,13 +37,13 @@ RUN npm install
 COPY --chown=chrome src/ ./src/
 RUN npm run build && npm prune --omit=dev
 
-# 3000: Node.js HTTP API 端口
-# 6080: noVNC Web 访问端口
+# 9222: Node.js HTTP API 端口
+# 9221: noVNC Web 访问端口
 # 9223-9323: 每会话 CDP 端口池（与 CDP_PORT_MIN/MAX 一致，docker run 需映射整段）
 ENV CDP_PORT_MIN=9223 \
     CDP_PORT_MAX=9323
-EXPOSE 3000
-EXPOSE 6080
+EXPOSE 9222
+EXPOSE 9221
 EXPOSE 9223-9323/tcp
 
 VOLUME ["/data/chrome-profiles"]

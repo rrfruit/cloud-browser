@@ -21,15 +21,15 @@ fi
 echo "==> 启动容器: ${CONTAINER_NAME}"
 docker run \
   --name "${CONTAINER_NAME}" \
-  -p 3000:3000 \
-  -p 6080:6080 \
+  -p 9222:9222 \
+  -p 9221:9221 \
   -p 9223-9323:9223-9323 \
   "${IMAGE_NAME}"
 
 echo ""
 echo "容器已启动:"
-echo "  应用接口:      http://localhost:3000"
-echo "  noVNC 界面:    http://localhost:6080/vnc.html  (密码: password)"
+echo "  应用接口:      http://localhost:9222"
+echo "  noVNC 界面:    http://localhost:9221/vnc.html  (密码: password)"
 echo "  CDP 端口池:    宿主机 9223-9323 -> 容器 9223-9323（见 API 返回的 wsEndpoint / cdpPort）"
 echo ""
 echo "查看日志: docker logs -f ${CONTAINER_NAME}"

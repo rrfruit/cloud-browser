@@ -7,11 +7,11 @@ async function delay(ms) {
 
 /**
  * Integration checks against a running API (needs Chrome / PUPPETEER_EXECUTABLE_PATH).
- * Usage: BASE_URL=http://127.0.0.1:3000 node scripts/verify-session-api.mjs
+ * Usage: BASE_URL=http://127.0.0.1:9222 node scripts/verify-session-api.mjs
  * If the server is unreachable, exits 0 with a skip message.
  */
 
-const BASE = process.env.BASE_URL ?? "http://127.0.0.1:3000";
+const BASE = process.env.BASE_URL ?? "http://127.0.0.1:9222";
 const prefix = `${BASE.replace(/\/$/, "")}/browser`;
 
 async function main() {

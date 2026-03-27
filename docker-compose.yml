@@ -1,0 +1,21 @@
+# 本地构建：docker compose build && docker compose up
+# 或一步：docker compose up --build
+# 镜像仅来自本仓库 Dockerfile，不会从 registry 拉取本服务镜像
+services:
+  cloud-browser:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cloud-browser:local
+    pull_policy: build
+    ports:
+      - "9221:9221"
+      - "9222:9222"
+      - "9223-9323:9223-9323/tcp"
+    volumes:
+      - chrome-profiles:/data/chrome-profiles
+    environment:
+      VNC_PASSWORD: ${VNC_PASSWORD:-password}
+
+volumes:
+  chrome-profiles:

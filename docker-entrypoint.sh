@@ -31,12 +31,12 @@ x11vnc -display "${DISPLAY}" \
 
 # 启动 noVNC (websockify)，将 VNC TCP 流量桥接为 WebSocket，
 # 使用户可直接通过浏览器访问桌面
-echo "Starting noVNC on port ${NOVNC_PORT:-6080}"
+echo "Starting noVNC on port ${NOVNC_PORT:-9221}"
 websockify --web /usr/share/novnc/ \
-  "${NOVNC_PORT:-6080}" \
+  "${NOVNC_PORT:-9221}" \
   "localhost:${VNC_PORT:-5900}" &
 
-echo "noVNC available at http://localhost:${NOVNC_PORT:-6080}/vnc.html#password=${VNC_PASSWORD:-password}&autoconnect=true&reconnect=true&reconnect_delay=5000&resize=scale&view_only=false"
+echo "noVNC available at http://localhost:${NOVNC_PORT:-9221}/vnc.html#password=${VNC_PASSWORD:-password}&autoconnect=true&reconnect=true&reconnect_delay=5000&resize=scale&view_only=false"
 echo "Executing command $@"
 # 用 exec 替换当前 shell 进程，使主进程成为 PID 1，确保信号能正确传递
 exec "$@"

@@ -21,7 +21,7 @@ npm run build
 npm start
 ```
 
-默认监听 `PORT`（未设置时为 **3000**）。
+默认监听 `PORT`（未设置时为 **9222**）。
 
 ## HTTP API
 
@@ -56,7 +56,7 @@ npm start
   "ticket": "<64-byte hex>",
   "wsEndpoint": "ws://...",
   "cdpPort": 9223,
-  "expiresAt": 1730000000000
+  "expiresAt": 1792220000000
 }
 ```
 
@@ -106,7 +106,7 @@ npm start
 
 | 变量 | 说明 | 默认 |
 |------|------|------|
-| `PORT` | HTTP 服务端口 | `3000` |
+| `PORT` | HTTP 服务端口 | `9222` |
 | `PUPPETEER_EXECUTABLE_PATH` | Chromium 可执行文件路径 | 无（需本机或镜像内已配置） |
 | `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` | 是否跳过 Puppeteer 自带 Chromium 下载 | 镜像内置 `1` |
 | `VIEWPORT_WIDTH` / `VIEWPORT_HEIGHT` | 启动参数中的窗口尺寸 | `1366` / `768` |
@@ -128,15 +128,15 @@ docker build -t cloud-browser .
 
 ```bash
 docker run --rm \
-  -p 3000:3000 \
-  -p 6080:6080 \
+  -p 9222:9222 \
+  -p 9221:9221 \
   -p 9223-9323:9223-9323 \
   -v cloud-browser-profiles:/data/chrome-profiles \
   cloud-browser
 ```
 
-- **API**：`http://localhost:3000`
-- **noVNC**（默认）：`http://localhost:6080/vnc.html`（密码见环境变量 `VNC_PASSWORD`，默认 `password`）
+- **API**：`http://localhost:9222`
+- **noVNC**（默认）：`http://localhost:9221/vnc.html`（密码见环境变量 `VNC_PASSWORD`，默认 `password`）
 
 项目提供 `./scripts/dev.sh`，会构建镜像并以前述端口启动开发容器（未挂载卷时，容器内配置仍写入声明的 volume 目录，重启容器可能丢失数据；生产环境请挂载卷）。
 
@@ -147,7 +147,7 @@ docker run --rm \
 ```bash
 node scripts/verify-session-api.mjs
 # 或
-BASE_URL=http://127.0.0.1:3000 node scripts/verify-session-api.mjs
+BASE_URL=http://127.0.0.1:9222 node scripts/verify-session-api.mjs
 ```
 
 若无法连接服务，脚本会跳过并以退出码 0 结束。
