@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import { randomUUID } from "node:crypto";
 
+async function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * Integration checks against a running API (needs Chrome / PUPPETEER_EXECUTABLE_PATH).
  * Usage: BASE_URL=http://127.0.0.1:3000 node scripts/verify-session-api.mjs
@@ -26,7 +30,9 @@ async function main() {
     process.exit(0);
   }
 
-  const badId = await fetch(`${prefix}/sessions`, {
+  await delay(1000);
+
+  const badId = await fetch(`${prefix}/session`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sessionId: "bad/id" }),
@@ -35,14 +41,16 @@ async function main() {
     throw new Error(`invalid sessionId expected 400, got ${badId.status}`);
   }
 
+  await delay(1000);
+
   const clientSessionId = randomUUID();
-  const create = await fetch(`${prefix}/sessions`, {
+  const create = await fetch(`${prefix}/session`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sessionId: clientSessionId }),
   });
   if (create.status !== 201) {
-    throw new Error(`POST /sessions expected 201, got ${create.status}`);
+    throw new Error(`POST /browser/session expected 201, got ${create.status}`);
   }
   const session = await create.json();
   const { sessionId, ticket, wsEndpoint, expiresAt } = session;
@@ -53,7 +61,9 @@ async function main() {
     throw new Error(`unexpected create payload: ${JSON.stringify(session)}`);
   }
 
-  const dup = await fetch(`${prefix}/sessions`, {
+  await delay(1000);
+
+  const dup = await fetch(`${prefix}/session`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sessionId: clientSessionId }),
@@ -62,7 +72,9 @@ async function main() {
     throw new Error(`duplicate sessionId expected 409, got ${dup.status}`);
   }
 
-  const badRenew = await fetch(`${prefix}/sessions/${sessionId}/renew`, {
+  await delay(1000);
+
+  const badRenew = await fetch(`${prefix}/session/${sessionId}/renew`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ticket: "0".repeat(64) }),
@@ -71,7 +83,9 @@ async function main() {
     throw new Error(`wrong ticket renew expected 401, got ${badRenew.status}`);
   }
 
-  const goodRenew = await fetch(`${prefix}/sessions/${sessionId}/renew`, {
+  await delay(1000);
+
+  const goodRenew = await fetch(`${prefix}/session/${sessionId}/renew`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ticket }),
@@ -84,8 +98,10 @@ async function main() {
     throw new Error(`unexpected renew payload: ${JSON.stringify(renewed)}`);
   }
 
+  await delay(1000);
+
   const missing = await fetch(
-    `${prefix}/sessions/00000000-0000-4000-8000-000000000000/renew`,
+    `${prefix}/session/00000000-0000-4000-8000-000000000000/renew`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -96,7 +112,9 @@ async function main() {
     throw new Error(`unknown session renew expected 404, got ${missing.status}`);
   }
 
-  const closed = await fetch(`${prefix}/sessions/${sessionId}/close`, {
+  await delay(1000);
+
+  const closed = await fetch(`${prefix}/session/${sessionId}/close`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ticket }),
@@ -105,7 +123,9 @@ async function main() {
     throw new Error(`close expected 200, got ${closed.status}`);
   }
 
-  const reuse = await fetch(`${prefix}/sessions`, {
+  await delay(1000);
+
+  const reuse = await fetch(`${prefix}/session`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sessionId: clientSessionId }),
@@ -116,7 +136,10 @@ async function main() {
     );
   }
   const again = await reuse.json();
-  await fetch(`${prefix}/sessions/${clientSessionId}/close`, {
+
+  await delay(1000);
+
+  await fetch(`${prefix}/session/${clientSessionId}/close`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ticket: again.ticket }),
