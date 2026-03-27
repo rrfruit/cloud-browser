@@ -21,6 +21,7 @@ fi
 echo "==> 启动容器: ${CONTAINER_NAME}"
 docker run \
   --name "${CONTAINER_NAME}" \
+  -p 15732:15732 \
   -p 9222:9222 \
   -p 9221:9221 \
   -p 9223-9323:9223-9323 \
