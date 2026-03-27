@@ -1,20 +1,49 @@
-# 基于 Alpine Linux + Chromium + Node.js 的精简镜像
-FROM zenika/alpine-chrome:with-node
+# 基于 Alpine Linux + Firefox + Node.js 的精简镜像
+FROM node:20-alpine
 
-# 切换到 root 安装系统依赖，安装后恢复至非特权用户 chrome
-USER 0
-# xvfb: 虚拟帧缓冲，提供无头显示环境
-# x11vnc: 将 X11 显示通过 VNC 协议共享
-# novnc: 基于 WebSocket 的 VNC 客户端，可通过浏览器访问
-# fluxbox: 轻量级窗口管理器，避免 Chromium 因无 WM 而崩溃
-RUN apk add --no-cache xvfb x11vnc novnc fluxbox \
-  && mkdir -p /data/chrome-profiles \
-  && chown chrome:chrome /data/chrome-profiles
-USER chrome
-# 设置工作目录（与基础镜像保持一致，后续 COPY / RUN 均以此为相对路径基准）
+# 安装 Firefox 和相关依赖
+RUN apk add --no-cache \
+    # Firefox 浏览器
+    firefox \
+    # 中文字体支持
+    font-noto-cjk \
+    ttf-freefont \
+    fontconfig \
+    # X11 相关（提供虚拟显示环境）
+    xvfb \
+    x11vnc \
+    # 轻量级窗口管理器，避免 Firefox 因无 WM 而崩溃
+    fluxbox \
+    # noVNC 依赖（基于 WebSocket 的 VNC 客户端）
+    python3 \
+    py3-numpy \
+    # 工具类
+    bash \
+    curl \
+    dbus \
+    dbus-x11 \
+    # 构建工具（用于后续编译）
+    g++ \
+    make \
+    python3-dev \
+    && ln -sf python3 /usr/bin/python \
+    && rm -rf /var/cache/apk/*
+
+# 安装 noVNC（从 GitHub 克隆最新版本）
+RUN git clone https://github.com/novnc/noVNC.git /opt/novnc \
+    && git clone https://github.com/novnc/websockify /opt/novnc/utils/websockify \
+    && chmod +x /opt/novnc/utils/novnc_proxy \
+    && ln -sf /opt/novnc/vnc.html /opt/novnc/index.html
+
+# 创建必要目录并设置权限
+RUN mkdir -p /data/firefox-profiles \
+    && mkdir -p /var/run/dbus \
+    && chown -R node:node /data/firefox-profiles
+
+# 设置工作目录
 WORKDIR /app
 
-# 虚拟显示与视口配置
+# 环境变量配置
 ENV DISPLAY=:99 \
     VIEWPORT_WIDTH=1366 \
     VIEWPORT_HEIGHT=768 \
@@ -22,24 +51,31 @@ ENV DISPLAY=:99 \
     VNC_PORT=5900 \
     # noVNC WebSocket 端口（供浏览器访问）
     NOVNC_PORT=9221 \
-    VNC_PASSWORD=password
+    VNC_PASSWORD=password \
+    # Firefox 配置
+    FIREFOX_PROFILE_DIR=/data/firefox-profiles \
+    # 语言设置
+    LANG=zh_CN.UTF-8 \
+    LANGUAGE=zh_CN:zh \
+    LC_ALL=zh_CN.UTF-8 \
+    # Node.js 环境
+    NODE_ENV=production
 
-# 跳过 Puppeteer 内置 Chromium 下载，直接使用镜像中已有的系统 Chromium
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD 1
-ENV PUPPETEER_EXECUTABLE_PATH /usr/bin/chromium-browser
-# Chromium user-data-dir 根目录；挂载卷到此路径以持久化配置与站点数据
-ENV BROWSER_USER_DATA_ROOT=/data/chrome-profiles
+# 配置中文字体
+RUN fc-cache -fv
 
-# 优先单独拷贝依赖清单与 TS 配置，利用 Docker 层缓存加速后续构建
-COPY --chown=chrome package.json package-lock.json tsconfig.json ./
-RUN npm install
+# 复制 package.json 和依赖文件
+COPY --chown=node package.json package-lock.json tsconfig.json ./
+RUN npm install --production=false
 
-COPY --chown=chrome src/ ./src/
+# 复制源代码并构建
+COPY --chown=node src/ ./src/
 RUN npm run build && npm prune --omit=dev
 
+# API 端口配置
 # 9222: Node.js HTTP API 端口
 # 9221: noVNC Web 访问端口
-# 9223-9323: 每会话 CDP 端口池（与 CDP_PORT_MIN/MAX 一致，docker run 需映射整段）
+# 9223-9323: 每个 Firefox 会话的 CDP 端口池（如果使用 Puppeteer/RDV）
 ENV CDP_PORT_MIN=9223 \
     CDP_PORT_MAX=9323
 
@@ -47,9 +83,11 @@ EXPOSE 9221
 EXPOSE 9222
 EXPOSE 9223-9323/tcp
 
-VOLUME ["/data/chrome-profiles"]
+VOLUME ["/data/firefox-profiles"]
 
-COPY --chown=chrome docker-entrypoint.sh ./
+# 复制启动脚本
+COPY --chown=node docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
+
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["node", "dist/main.js"]
