@@ -63,8 +63,11 @@ function ticketsMatch(expected: string, provided: string): boolean {
 function defaultLaunchArgs(extra: string[], cdpPort: number): string[] {
   return [
     "--no-sandbox",
+    "--disable-setuid-sandbox",
     "--disable-dev-shm-usage",
     "--disable-gpu",
+    "--lang=zh-CN,zh",
+    "--disable-blink-features=AutomationControlled",
     `--window-size=${process.env.VIEWPORT_WIDTH},${process.env.VIEWPORT_HEIGHT}`,
     `--remote-debugging-port=${cdpPort}`,
     "--remote-debugging-address=0.0.0.0",

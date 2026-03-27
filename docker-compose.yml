@@ -15,6 +15,7 @@ services:
     volumes:
       - chrome-profiles:/data/chrome-profiles
     environment:
+      TZ: Asia/Shanghai
       VNC_PASSWORD: ${VNC_PASSWORD:-password}
 
 volumes:
