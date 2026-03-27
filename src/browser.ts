@@ -41,6 +41,7 @@ type SessionEntry = {
   wsEndpoint: string;
   ticket: string;
   timer: ReturnType<typeof setTimeout> | null;
+  cdpPort: number;
   expiresAt: number;
 };
 
@@ -59,13 +60,13 @@ function ticketsMatch(expected: string, provided: string): boolean {
   }
 }
 
-function defaultLaunchArgs(extra: string[]): string[] {
+function defaultLaunchArgs(extra: string[], cdpPort: number): string[] {
   return [
     "--no-sandbox",
     "--disable-dev-shm-usage",
     "--disable-gpu",
     `--window-size=${process.env.VIEWPORT_WIDTH},${process.env.VIEWPORT_HEIGHT}`,
-    "--remote-debugging-port=0",
+    `--remote-debugging-port=${cdpPort}`,
     "--remote-debugging-address=0.0.0.0",
     ...extra,
   ];
@@ -106,13 +107,25 @@ export function getSessionCount(): number {
 
 export type CreateSessionResult =
   | {
-      ok: true;
-      sessionId: string;
-      ticket: string;
-      wsEndpoint: string;
-      expiresAt: number;
-    }
+    ok: true;
+    sessionId: string;
+    ticket: string;
+    wsEndpoint: string;
+    expiresAt: number;
+  }
   | { ok: false; error: "INVALID_SESSION_ID" | "SESSION_ID_IN_USE" };
+
+const CDP_PORT_MIN = parseInt(process.env.CDP_PORT_MIN || "9223");
+const CDP_PORT_MAX = parseInt(process.env.CDP_PORT_MAX || "9323");
+function getAvailableCdpPort(): number {
+  const usedCdpPorts = Array.from(sessions.values()).map(session => session.cdpPort);
+  for (let port = CDP_PORT_MIN; port <= CDP_PORT_MAX; port++) {
+    if (!usedCdpPorts.includes(port)) {
+      return port;
+    }
+  }
+  throw new Error("No available CDP port found");
+}
 
 export async function createSession(
   sessionIdRaw: unknown,
@@ -131,13 +144,14 @@ export async function createSession(
   const ticket = generateTicket();
 
   mkdirSync(getUserDataRoot(), { recursive: true });
+  const cdpPort = getAvailableCdpPort();
 
   let instance: Browser;
   try {
     instance = await puppeteer.launch({
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
       headless: false,
-      args: defaultLaunchArgs(args),
+      args: defaultLaunchArgs(args, cdpPort),
       userDataDir: userDataDirForSession(sessionId),
     });
   } catch (e) {
@@ -152,6 +166,7 @@ export async function createSession(
     wsEndpoint,
     ticket,
     timer: null,
+    cdpPort: 0,
     expiresAt: 0,
   };
   sessions.set(sessionId, entry);
