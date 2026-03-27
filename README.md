@@ -140,6 +140,10 @@ docker run --rm \
 
 项目提供 `./scripts/dev.sh`，会构建镜像并以前述端口启动开发容器（未挂载卷时，容器内配置仍写入声明的 volume 目录，重启容器可能丢失数据；生产环境请挂载卷）。
 
+## TypeScript SDK（外部调用）
+
+仓库内 npm 包 **`cloud-browser-sdk`** 位于 [`sdk/`](./sdk/)，安装、API 说明与示例见 **[sdk/README.md](./sdk/README.md)**。根目录可执行 `npm run build:sdk` 单独编译 SDK。
+
 ## 集成测试脚本
 
 服务已启动且本机可启动 Chromium 时：

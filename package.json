@@ -8,6 +8,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
+    "build:sdk": "npm run build --prefix sdk",
     "start": "docker compose up -d --build",
     "stop": "docker compose down",
     "dev": "./scripts/dev.sh",
