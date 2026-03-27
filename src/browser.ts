@@ -154,6 +154,7 @@ export async function createSession(
   let instance: Browser;
   try {
     instance = await puppeteer.launch({
+      browser: "chrome",
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
       headless: false,
       ignoreDefaultArgs: ['--enable-automation'],
