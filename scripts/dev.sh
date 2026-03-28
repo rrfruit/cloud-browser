@@ -27,6 +27,7 @@ docker run \
   -p 9222:9222 \
   -p 9221:9221 \
   -p 9223-9323:9223-9323 \
+  -v /browser-profiles:/data/chrome-profiles \
   "${IMAGE_NAME}"
 
 echo ""
