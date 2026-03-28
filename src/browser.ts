@@ -70,8 +70,8 @@ function defaultLaunchArgs(extra: string[], cdpPort: number): string[] {
     "--lang=zh-CN,zh",
     "--disable-blink-features=AutomationControlled",
     `--window-size=${process.env.VIEWPORT_WIDTH},${process.env.VIEWPORT_HEIGHT}`,
-    `--remote-debugging-port=${cdpPort}`,
-    "--remote-debugging-address=0.0.0.0",
+    // `--remote-debugging-port=${cdpPort}`,
+    // "--remote-debugging-address=0.0.0.0",
     ...extra,
   ];
 }
@@ -166,7 +166,7 @@ export async function createSession(
     throw e;
   }
 
-  const wsEndpoint = instance.wsEndpoint();
+  const wsEndpoint = "ws://127.0.0.1:9223/devtools/browser/86073637-379e-486f-8130-100033478543" // instance.wsEndpoint();
 
   const entry: SessionEntry = {
     browser: instance,
