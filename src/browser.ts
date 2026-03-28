@@ -196,6 +196,10 @@ export async function createSession(
         headless: false,
         args: firefoxLaunchArgs(args, cdpPort),
         userDataDir: userDataDirForSession(sessionId),
+        // Docker often lacks user namespaces; content sandbox clone() → EPERM without this.
+        extraPrefsFirefox: {
+          "security.sandbox.content.level": 0,
+        },
       });
     }
   } catch (e) {

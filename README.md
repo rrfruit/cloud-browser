@@ -116,7 +116,7 @@ npm start
 | `CDP_PORT_MIN` / `CDP_PORT_MAX` | 远程调试端口闭区间；池大小即最大并发会话数 | `9223` / `9323` |
 | `PUBLIC_WS_HOST` | 若设置，创建会话返回的 `wsEndpoint` 会把主机名改为该值（不含协议） | 未设置则多为 `127.0.0.1` |
 
-Docker 基于 [jlesage/baseimage-gui](https://github.com/jlesage/docker-baseimage-gui)：Web 访问桌面默认端口为 `WEB_LISTENING_PORT`（镜像内 `9221`），原生 VNC 为 `VNC_LISTENING_PORT`（默认 `5900`），密码见 `VNC_PASSWORD`。HTTP API 进程在 s6 里以 **`USER_ID`/`GROUP_ID`**（与 GUI 用户一致）运行，避免 Firefox 报 “root + XDG_RUNTIME_DIR 属 app” 错误；镜像默认启用 `MOZ_DISABLE_CONTENT_SANDBOX` 等，减轻容器内 user namespace 的 `EPERM`。
+Docker 基于 [jlesage/baseimage-gui](https://github.com/jlesage/docker-baseimage-gui)：Web 访问桌面默认端口为 `WEB_LISTENING_PORT`（镜像内 `9221`），原生 VNC 为 `VNC_LISTENING_PORT`（默认 `5900`），密码见 `VNC_PASSWORD`。HTTP API 由 s6 拉起后通过 **`s6-setuidgid app`** 以 jlesage 的 **`app` 用户**（与 `USER_ID`/`GROUP_ID` 一致）运行 Node，避免 Firefox 报 “root + XDG_RUNTIME_DIR 属 app”；Firefox 另设 `extraPrefsFirefox` 降低内容沙箱级别，镜像内还有 `MOZ_DISABLE_*`，减轻容器里 `clone()` EPERM。
 
 ## Docker
 

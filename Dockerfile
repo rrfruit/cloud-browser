@@ -42,10 +42,7 @@ COPY src/ ./src/
 RUN npm run build && npm prune --omit=dev
 
 COPY rootfs/ /
-RUN chmod +x \
-    /startapp.sh \
-    /etc/services.d/cloud-browser/run \
-    /etc/cont-init.d/55-cloud-browser-uidgid.sh
+RUN chmod +x /startapp.sh /etc/services.d/cloud-browser/run
 
 RUN \
     mkdir -p /data/chrome-profiles && \
