@@ -1,19 +1,19 @@
 # cloud-browser
 
-在服务器上按需启动 **Firefox** 实例，通过 HTTP API 返回 **WebDriver BiDi** 的 WebSocket 地址（`wsEndpoint`），供外部用 **Puppeteer**（`puppeteer.connect`）等连接控制浏览器。支持 **多会话并行**、**不透明票据** 与 **30 秒滑动续期**；可选 **noVNC** 查看桌面。
+在服务器上按需启动 **Firefox** 实例，通过 HTTP API 返回 **WebDriver BiDi** 的 WebSocket 地址（`wsEndpoint`），供外部用 **Puppeteer**（`puppeteer.connect`）等连接控制浏览器。服务端使用 **Playwright**（[`playwright-extra`](https://www.npmjs.com/package/playwright-extra)）启动浏览器；可在 [`src/playwright-extra-setup.ts`](./src/playwright-extra-setup.ts) 上为 `firefox` 注册插件。支持 **多会话并行**、**不透明票据** 与 **30 秒滑动续期**；可选 **noVNC** 查看桌面。
 
 ## 功能概览
 
 - 按客户端指定的 `sessionId` 创建独立浏览器进程（同一时刻 **活跃会话内 `sessionId` 不可重复**）。
 - 创建响应返回 `wsEndpoint`、`ticket`、`expiresAt`；续期、关闭须携带正确 `ticket`。
 - 自上次创建或成功续期起 **30 秒内无续期则自动关闭** 该会话浏览器。
-- 使用 Puppeteer 官方包启动 Firefox（WebDriver BiDi）。
+- 使用 Playwright + playwright-extra 启动 Firefox（WebDriver BiDi；`wsEndpoint` 由本机调试端口的 `/json/version` 解析）。
 - **远程调试端口池**：在 `CDP_PORT_MIN`～`CDP_PORT_MAX`（默认 9223–9323）内为每个会话分配独立 **TCP 端口**（与 Firefox `--remote-debugging-port` 一致），便于 Docker **1:1 映射整段端口**；返回的 `wsEndpoint` 可选经 `PUBLIC_WS_HOST` 改写主机名。
 - Docker 镜像内含 Xvfb、Fluxbox、x11vnc、noVNC，便于远程看图。
 
 ## 本地开发
 
-依赖：Node.js 18+、已安装的 Firefox（设置 `PUPPETEER_EXECUTABLE_PATH`）或使用项目 Docker 镜像。
+依赖：Node.js 18+、已安装的 Firefox（设置 `PLAYWRIGHT_EXECUTABLE_PATH`，或暂用已废弃别名 `PUPPETEER_EXECUTABLE_PATH`）或使用项目 Docker 镜像。安装依赖时可设 `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` 跳过 Playwright 自带浏览器下载。
 
 ```bash
 npm install
@@ -100,15 +100,16 @@ npm start
 
 若客户端访问的主机名与容器内不一致（例如经公网 IP 访问），设置 **`PUBLIC_WS_HOST`**（仅替换 `wsEndpoint` 的 **hostname**，端口不变，适用于 1:1 端口映射）。
 
-常见用法：`puppeteer.connect({ browserWSEndpoint: wsEndpoint })`（需使用支持 BiDi 的 Puppeteer 版本）。
+常见用法：`puppeteer.connect({ browserWSEndpoint: wsEndpoint })`（需使用支持 BiDi 的 Puppeteer 版本）。若用 Playwright 作为客户端，需自行确认当前 Firefox 暴露的端点与 Playwright 连接 API 是否匹配。
 
 ## 环境变量
 
 | 变量 | 说明 | 默认 |
 |------|------|------|
 | `PORT` | HTTP 服务端口 | `9222` |
-| `PUPPETEER_EXECUTABLE_PATH` | Firefox 可执行文件路径 | 无（需本机或镜像内已配置） |
-| `PUPPETEER_SKIP_DOWNLOAD` | 是否跳过 Puppeteer 自带浏览器下载 | 镜像内置 `1` |
+| `PLAYWRIGHT_EXECUTABLE_PATH` | Firefox 可执行文件路径 | 无（需本机或镜像内已配置） |
+| `PUPPETEER_EXECUTABLE_PATH` | 同上（兼容旧编排；优先使用上一项） | 无 |
+| `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` | 安装依赖时是否跳过 Playwright 自带浏览器下载 | 镜像内置 `1` |
 | `VIEWPORT_WIDTH` / `VIEWPORT_HEIGHT` | 启动参数中的窗口尺寸 | `1366` / `768` |
 | `BROWSER_USER_DATA_ROOT` | 各会话配置目录的父目录（持久化配置与站点数据） | `/tmp`；Docker 镜像为 `/data/firefox-profiles` |
 | `CDP_PORT_MIN` / `CDP_PORT_MAX` | 远程调试端口闭区间；池大小即最大并发会话数 | `9223` / `9323` |

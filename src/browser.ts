@@ -1,13 +1,16 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import type { Browser } from "puppeteer";
-import puppeteer from "puppeteer";
+import type { BrowserContext } from "playwright-core";
+import { firefox } from "./playwright-extra-setup.js";
 
 const SESSION_TTL_MS = 30_000;
 const SESSION_ID_MAX_LEN = 128;
 /** URL/path-safe segment: no slashes or control chars */
 const SESSION_ID_RE = /^[\w.-]{1,128}$/;
+
+const WS_RESOLVE_ATTEMPTS = 50;
+const WS_RESOLVE_INTERVAL_MS = 100;
 
 const sessions = new Map<string, SessionEntry>();
 const pendingSessionIds = new Set<string>();
@@ -32,7 +35,7 @@ function userDataDirForSession(sessionId: string): string {
 }
 
 type SessionEntry = {
-  browser: Browser;
+  context: BrowserContext;
   wsEndpoint: string;
   ticket: string;
   timer: ReturnType<typeof setTimeout> | null;
@@ -53,6 +56,52 @@ function ticketsMatch(expected: string, provided: string): boolean {
   } catch {
     return false;
   }
+}
+
+function getExecutablePath(): string | undefined {
+  const pw = process.env.PLAYWRIGHT_EXECUTABLE_PATH?.trim();
+  if (pw) return pw;
+  const legacy = process.env.PUPPETEER_EXECUTABLE_PATH?.trim();
+  return legacy || undefined;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function pickWsUrlFromVersionJson(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const o = data as Record<string, unknown>;
+  const direct = o.webSocketDebuggerUrl;
+  if (typeof direct === "string" && direct.startsWith("ws")) return direct;
+  const bidi = o.bidi;
+  if (typeof bidi === "string" && bidi.startsWith("ws")) return bidi;
+  return null;
+}
+
+/**
+ * Firefox exposes a debugger WebSocket URL on the remote-debugging HTTP port
+ * (Playwright does not provide Puppeteer-compatible browser.wsEndpoint()).
+ */
+async function resolveFirefoxWsEndpoint(cdpPort: number): Promise<string> {
+  const url = `http://127.0.0.1:${cdpPort}/json/version`;
+  let lastErr: unknown;
+  for (let i = 0; i < WS_RESOLVE_ATTEMPTS; i++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
+      if (res.ok) {
+        const json: unknown = await res.json();
+        const ws = pickWsUrlFromVersionJson(json);
+        if (ws) return ws;
+      }
+    } catch (e) {
+      lastErr = e;
+    }
+    await delay(WS_RESOLVE_INTERVAL_MS);
+  }
+  throw new Error(
+    `Failed to resolve WebSocket debugger URL on port ${cdpPort}: ${String(lastErr ?? "no webSocketDebuggerUrl")}`
+  );
 }
 
 /** Firefox: fixed remote debugging port for WebDriver BiDi; window size via -width/-height. */
@@ -92,7 +141,7 @@ async function destroySession(sessionId: string): Promise<void> {
   }
 
   try {
-    await entry.browser.close();
+    await entry.context.close();
   } catch (e) {
     // process may already be gone
     console.error("Error closing browser", e);
@@ -145,29 +194,52 @@ export async function createSession(
   mkdirSync(getUserDataRoot(), { recursive: true });
   const cdpPort = getAvailableCdpPort();
 
-  const execPath = process.env.PUPPETEER_EXECUTABLE_PATH?.trim();
+  const execPath = getExecutablePath();
 
-  let instance: Browser;
+  let context: BrowserContext;
   try {
-    instance = await puppeteer.launch({
-      browser: "firefox",
-      ...(execPath ? { executablePath: execPath } : {}),
-      headless: false,
-      args: defaultLaunchArgs(args, cdpPort),
-      userDataDir: userDataDirForSession(sessionId),
-      extraPrefsFirefox: {
-        "devtools.debugger.remote.force-local": false,
-      },
-    });
+    context = await firefox.launchPersistentContext(
+      userDataDirForSession(sessionId),
+      {
+        ...(execPath ? { executablePath: execPath } : {}),
+        headless: false,
+        args: defaultLaunchArgs(args, cdpPort),
+        firefoxUserPrefs: {
+          "devtools.debugger.remote.force-local": false,
+        },
+      }
+    );
   } catch (e) {
     pendingSessionIds.delete(sessionId);
     throw e;
   }
 
-  const wsEndpoint = instance.wsEndpoint();
+  let wsEndpoint: string;
+  try {
+    wsEndpoint = await resolveFirefoxWsEndpoint(cdpPort);
+  } catch (e) {
+    pendingSessionIds.delete(sessionId);
+    try {
+      await context.close();
+    } catch {
+      /* ignore */
+    }
+    throw e;
+  }
+
+  const publicHost = process.env.PUBLIC_WS_HOST?.trim();
+  if (publicHost) {
+    try {
+      const u = new URL(wsEndpoint);
+      u.hostname = publicHost;
+      wsEndpoint = u.toString();
+    } catch {
+      /* keep original */
+    }
+  }
 
   const entry: SessionEntry = {
-    browser: instance,
+    context,
     wsEndpoint,
     ticket,
     timer: null,
@@ -177,7 +249,7 @@ export async function createSession(
   sessions.set(sessionId, entry);
   pendingSessionIds.delete(sessionId);
 
-  instance.on("disconnected", () => {
+  context.on("close", () => {
     const current = sessions.get(sessionId);
     if (!current) return;
     sessions.delete(sessionId);

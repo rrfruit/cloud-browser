@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 import { randomUUID } from "node:crypto";
 
 async function delay(ms) {
@@ -6,7 +6,7 @@ async function delay(ms) {
 }
 
 /**
- * Integration checks against a running API (needs Firefox / PUPPETEER_EXECUTABLE_PATH).
+ * Integration checks against a running API (server needs Firefox; set PLAYWRIGHT_EXECUTABLE_PATH or PUPPETEER_EXECUTABLE_PATH for local non-Docker runs).
  * Usage: BASE_URL=http://127.0.0.1:9222 node scripts/verify-session-api.mjs
  * If the server is unreachable, exits 0 with a skip message.
  */

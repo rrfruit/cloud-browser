@@ -1,6 +1,6 @@
 # cloud-browser-sdk
 
-面向 [cloud-browser](../README.md) HTTP API 的 TypeScript 客户端。仅依赖 **全局 `fetch`**（Node.js 18+ 或支持 Fetch 的运行时），无 Puppeteer 等浏览器依赖；拿到 `wsEndpoint` 后请自行用 `puppeteer.connect` 等连接 **WebDriver BiDi**（需兼容的 Puppeteer 版本）。
+面向 [cloud-browser](../README.md) HTTP API 的 TypeScript 客户端。仅依赖 **全局 `fetch`**（Node.js 18+ 或支持 Fetch 的运行时），无浏览器驱动依赖；服务端由 Playwright（playwright-extra）启动 Firefox。拿到 `wsEndpoint` 后请自行用 `puppeteer.connect` 等连接 **WebDriver BiDi**（需兼容的 Puppeteer 版本）；若用 Playwright 连接，请确认其对你环境中 BiDi 端点的支持方式。
 
 ## 安装
 
