@@ -30,7 +30,7 @@ function getUserDataRoot(): string {
 }
 
 function userDataDirForSession(sessionId: string): string {
-  return "sessionId"
+  return sessionId
 }
 
 type SessionEntry = {
