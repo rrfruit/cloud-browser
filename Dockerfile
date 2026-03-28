@@ -3,6 +3,7 @@ FROM node:22-alpine
 
 USER 0
 RUN apk add --no-cache firefox xvfb x11vnc novnc fluxbox dbus \
+    font-dejavu font-noto-cjk \
   && mkdir -p /data/firefox-profiles \
   && chown node:node /data/firefox-profiles
 
