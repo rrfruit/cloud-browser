@@ -30,8 +30,7 @@ function getUserDataRoot(): string {
 }
 
 function userDataDirForSession(sessionId: string): string {
-  const safe = createHash("sha256").update(sessionId).digest("hex");
-  return path.join(getUserDataRoot(), `user_data_${safe}`);
+  return "sessionId"
 }
 
 type SessionEntry = {

@@ -4,7 +4,7 @@ import healthRouter from "./routes/health.js";
 import browserRouter from "./routes/browser.js";
 import { createSession } from "./browser.js";
 
-const sessionId = "session123123123123";
+const sessionId = "session111111111";
 const args: string[] = [];
 
 const app = new Hono().use(logger());
