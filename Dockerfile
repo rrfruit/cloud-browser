@@ -1,59 +1,57 @@
-# jlesage GUI stack (TigerVNC + noVNC + Openbox) + Firefox + Node API
-FROM jlesage/baseimage-gui:alpine-3.23-v4.11.3
+FROM jlesage/baseimage-gui:alpine-3.19-v4
 
-ARG FIREFOX_VERSION=
+# ============================================
+# 安装 Firefox 和 Node.js
+# ============================================
+RUN apk add --no-cache \
+    # Firefox 浏览器
+    firefox \
+    # Node.js 环境
+    nodejs \
+    npm \
+    # Firefox 运行依赖
+    dbus \
+    # 中文字体支持（可选）
+    font-noto-cjk \
+    # 额外的图形依赖
+    mesa-gl \
+    mesa-dri-gallium
 
-WORKDIR /tmp
+# ============================================
+# 环境变量配置
+# ============================================
+ENV DISPLAY=:0 \
+    APP_NAME="Node.js + Firefox Controller" \
+    # Firefox 配置
+    MOZ_ENABLE_WAYLAND=0 \
+    MOZ_LEGACY_PROFILES=1
 
-RUN \
-    if [ -n "$FIREFOX_VERSION" ]; then \
-        add-pkg firefox=${FIREFOX_VERSION}; \
-    else \
-        add-pkg firefox; \
-    fi && \
-    add-pkg \
-        nodejs \
-        npm \
-        font-dejavu \
-        mesa-dri-gallium \
-        libpulse
-
-ENV WEB_LISTENING_PORT=9221 \
-    VIEWPORT_WIDTH=1366 \
-    VIEWPORT_HEIGHT=768 \
-    PUPPETEER_SKIP_DOWNLOAD=1 \
-    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1 \
-    PUPPETEER_BROWSER=firefox \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/firefox \
-    BROWSER_USER_DATA_ROOT=/data/chrome-profiles \
-    CDP_PORT_MIN=9223 \
-    CDP_PORT_MAX=9323 \
-    MOZ_DISABLE_CONTENT_SANDBOX=1 \
-    MOZ_DISABLE_GMP_SANDBOX=1 \
-    MOZ_DISABLE_RDD_SANDBOX=1 \
-    MOZ_DISABLE_SOCKET_PROCESS_SANDBOX=1
-
+# ============================================
+# 准备 Node.js 应用
+# ============================================
 WORKDIR /app
-
 COPY package.json package-lock.json tsconfig.json ./
 RUN npm ci
 
 COPY src/ ./src/
 RUN npm run build && npm prune --omit=dev
 
-COPY rootfs/ /
-RUN chmod +x /startapp.sh /etc/services.d/cloud-browser/run
+# ============================================
+# 创建自定义启动脚本
+# ============================================
+COPY startapp.sh /startapp.sh
+RUN chmod +x /startapp.sh
 
-RUN \
-    mkdir -p /data/chrome-profiles && \
-    take-ownership /app && \
-    take-ownership /data/chrome-profiles
-
-RUN set-cont-env APP_NAME "Cloud Browser"
-
-EXPOSE 9221
+# ============================================
+# 暴露端口
+# ============================================
+# 5800: Web GUI (noVNC)
+# 5900: VNC 客户端
+# 9222: Node.js API
+# 9223-9323: Debug ports
+EXPOSE 5800
 EXPOSE 9222
-EXPOSE 5900
 EXPOSE 9223-9323/tcp
 
-VOLUME ["/data/chrome-profiles"]
+# 使用基础镜像的默认用户
+USER 1000

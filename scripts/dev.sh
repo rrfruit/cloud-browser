@@ -24,7 +24,7 @@ docker run \
   --network="host" \
   -e HTTP_PROXY="http://127.0.0.1:15732" \
   -e HTTPS_PROXY="http://127.0.0.1:15732" \
-  -p 9221:5900 \
+  -p 9221:5800 \
   -p 9222:9222 \
   -p 9223-9323:9223-9323 \
   "${IMAGE_NAME}"
@@ -33,7 +33,7 @@ echo ""
 echo "容器已启动:"
 echo "  应用接口:      http://localhost:9222"
 echo "  Web 桌面 (jlesage / noVNC):  http://localhost:9221/"
-echo "  原生 VNC:      localhost:5900  (密码见 VNC_PASSWORD)"
+echo "  原生 VNC:      localhost:5800  (密码见 VNC_PASSWORD)"
 echo "  调试端口池:    宿主机 9223-9323（Firefox WebDriver BiDi；见 API 返回的 wsEndpoint）"
 echo ""
 echo "查看日志: docker logs -f ${CONTAINER_NAME}"

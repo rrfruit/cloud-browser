@@ -9,7 +9,7 @@ services:
     image: cloud-browser:local
     pull_policy: build
     ports:
-      - "9221:5900"
+      - "9221:5800"
       - "9222:9222"
       - "9223-9323:9223-9323/tcp"
     volumes:
