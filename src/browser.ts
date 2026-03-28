@@ -202,9 +202,6 @@ export async function createSession(
         ...(execPath ? { executablePath: execPath } : {}),
         headless: false,
         args: defaultLaunchArgs(args, cdpPort),
-        firefoxUserPrefs: {
-          "devtools.debugger.remote.force-local": false,
-        },
       }
     );
   } catch (e) {
