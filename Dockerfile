@@ -27,7 +27,11 @@ ENV WEB_LISTENING_PORT=9221 \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/firefox \
     BROWSER_USER_DATA_ROOT=/data/chrome-profiles \
     CDP_PORT_MIN=9223 \
-    CDP_PORT_MAX=9323
+    CDP_PORT_MAX=9323 \
+    MOZ_DISABLE_CONTENT_SANDBOX=1 \
+    MOZ_DISABLE_GMP_SANDBOX=1 \
+    MOZ_DISABLE_RDD_SANDBOX=1 \
+    MOZ_DISABLE_SOCKET_PROCESS_SANDBOX=1
 
 WORKDIR /app
 
@@ -38,7 +42,11 @@ COPY src/ ./src/
 RUN npm run build && npm prune --omit=dev
 
 COPY rootfs/ /
-RUN chmod +x /startapp.sh /etc/services.d/cloud-browser/run
+RUN chmod +x \
+    /startapp.sh \
+    /etc/services.d/cloud-browser/run \
+    /etc/services.d/cloud-browser/uid \
+    /etc/services.d/cloud-browser/gid
 
 RUN \
     mkdir -p /data/chrome-profiles && \

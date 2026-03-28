@@ -1,0 +1,3 @@
+#!/bin/sh
+# Run API as the same user as the GUI (jlesage sets USER_ID at runtime).
+echo "${USER_ID:-1000}"
