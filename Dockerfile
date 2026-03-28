@@ -45,8 +45,7 @@ COPY rootfs/ /
 RUN chmod +x \
     /startapp.sh \
     /etc/services.d/cloud-browser/run \
-    /etc/services.d/cloud-browser/uid \
-    /etc/services.d/cloud-browser/gid
+    /etc/cont-init.d/55-cloud-browser-uidgid.sh
 
 RUN \
     mkdir -p /data/chrome-profiles && \
@@ -55,6 +54,7 @@ RUN \
 
 RUN set-cont-env APP_NAME "Cloud Browser"
 
+EXPOSE 9221
 EXPOSE 9222
 EXPOSE 5900
 EXPOSE 9223-9323/tcp

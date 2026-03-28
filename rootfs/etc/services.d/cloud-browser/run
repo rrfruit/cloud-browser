@@ -1,4 +1,4 @@
-#!/command/with-contenv sh
+#!/bin/sh
 set -eu
 cd /app
-exec node dist/main.js
+exec /usr/bin/node dist/main.js

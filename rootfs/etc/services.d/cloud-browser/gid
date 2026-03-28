@@ -1,2 +1,0 @@
-#!/bin/sh
-echo "${GROUP_ID:-1000}"
