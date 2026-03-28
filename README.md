@@ -1,19 +1,19 @@
 # cloud-browser
 
-在服务器上按需启动 **Chromium** 实例，通过 HTTP API 返回 **Chrome DevTools Protocol (CDP) WebSocket 地址**（`wsEndpoint`），供外部用 Puppeteer、`chrome-remote-interface` 等连接控制浏览器。支持 **多会话并行**、**不透明票据** 与 **30 秒滑动续期**；可选 **noVNC** 查看桌面。
+在服务器上按需启动 **Firefox**（默认）或 **Chromium** 实例，通过 HTTP API 返回调试 **WebSocket 地址**（`wsEndpoint`）：Firefox 使用 **WebDriver BiDi**，Chrome 使用 **CDP**。支持 **多会话并行**、**不透明票据** 与 **30 秒滑动续期**；Docker 镜像基于 **jlesage/baseimage-gui**，通过 Web 或 VNC 查看桌面。
 
 ## 功能概览
 
 - 按客户端指定的 `sessionId` 创建独立浏览器进程（同一时刻 **活跃会话内 `sessionId` 不可重复**）。
 - 创建响应返回 `wsEndpoint`、`ticket`、`expiresAt`；续期、关闭须携带正确 `ticket`。
 - 自上次创建或成功续期起 **30 秒内无续期则自动关闭** 该会话浏览器。
-- 使用 `puppeteer-extra` + stealth 插件启动 Chromium。
-- **CDP 调试端口池**：在 `CDP_PORT_MIN`～`CDP_PORT_MAX`（默认 9223–9323）内为每个会话分配独立端口，便于 Docker **1:1 映射整段端口**；返回的 `wsEndpoint` 可选经 `PUBLIC_WS_HOST` 改写主机名。
-- Docker 镜像内含 Xvfb、Fluxbox、x11vnc、noVNC，便于远程看图。
+- 默认 **Firefox**：不加载 stealth；`PUPPETEER_BROWSER=chrome` 时使用 `puppeteer-extra` + stealth。
+- **调试端口池**：在 `CDP_PORT_MIN`～`CDP_PORT_MAX`（默认 9223–9323）内为每个会话分配独立远程调试端口，便于 Docker **1:1 映射整段端口**；返回的 `wsEndpoint` 可选经 `PUBLIC_WS_HOST` 改写主机名。
+- Docker 镜像使用 **jlesage/baseimage-gui**（TigerVNC + noVNC + Openbox），不再自管 Xvfb/websockify。
 
 ## 本地开发
 
-依赖：Node.js 18+、已安装的 Chromium（设置 `PUPPETEER_EXECUTABLE_PATH`）或使用项目 Docker 镜像。
+依赖：Node.js 18+、已安装的 Firefox 或 Chromium（设置 `PUPPETEER_EXECUTABLE_PATH` 与 `PUPPETEER_BROWSER`）或使用项目 Docker 镜像。
 
 ```bash
 npm install
@@ -94,27 +94,29 @@ npm start
 
 **成功 `200`**：`{ "closed": true }`。错误码含义同 renew。
 
-## 连接 CDP
+## 连接调试协议（Firefox WebDriver BiDi / Chrome CDP）
 
-创建成功后，在 **能直连 `cdpPort` 对应 TCP 端口** 的网络内使用返回的 `wsEndpoint`。容器场景下请映射与 `CDP_PORT_MIN`/`CDP_PORT_MAX` 一致的端口段（例如 `-p 9223-9323:9223-9323`），否则宿主机无法连上随机分配在段内的调试口。
+创建成功后，在 **能直连 `cdpPort` 对应 TCP 端口** 的网络内使用返回的 `wsEndpoint`。Firefox 会话使用 **WebDriver BiDi**（非 CDP）；Chrome 会话为 CDP。容器请映射与 `CDP_PORT_MIN`/`CDP_PORT_MAX` 一致的端口段（例如 `-p 9223-9323:9223-9323`）。
 
 若客户端访问的主机名与容器内不一致（例如经公网 IP 访问），设置 **`PUBLIC_WS_HOST`**（仅替换 `wsEndpoint` 的 **hostname**，端口不变，适用于 1:1 端口映射）。
 
-常见用法：`puppeteer.connect({ browserWSEndpoint })`。
+常见用法：`puppeteer.connect({ browserWSEndpoint })`（需与浏览器协议一致）。
 
 ## 环境变量
 
 | 变量 | 说明 | 默认 |
 |------|------|------|
 | `PORT` | HTTP 服务端口 | `9222` |
-| `PUPPETEER_EXECUTABLE_PATH` | Chromium 可执行文件路径 | 无（需本机或镜像内已配置） |
-| `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` | 是否跳过 Puppeteer 自带 Chromium 下载 | 镜像内置 `1` |
+| `PUPPETEER_EXECUTABLE_PATH` | 浏览器可执行文件路径（镜像内 Firefox） | 镜像内置 `/usr/bin/firefox` |
+| `PUPPETEER_BROWSER` | `firefox` 或 `chrome`（仅 `chrome` 时加载 stealth 插件） | `firefox` |
+| `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` / `PUPPETEER_SKIP_DOWNLOAD` | 跳过 Puppeteer 自带浏览器下载 | 镜像内置 `1` |
+| `FIREFOX_REMOTE_ALLOW_HOSTS` | Firefox `--remote-allow-hosts`（逗号分隔）；非本机连接调试端口时可设 | 未设置 |
 | `VIEWPORT_WIDTH` / `VIEWPORT_HEIGHT` | 启动参数中的窗口尺寸 | `1366` / `768` |
 | `BROWSER_USER_DATA_ROOT` | 各会话 `user-data-dir` 的父目录（持久化配置与站点数据） | `/tmp`；Docker 镜像为 `/data/chrome-profiles` |
 | `CDP_PORT_MIN` / `CDP_PORT_MAX` | 远程调试端口闭区间；池大小即最大并发会话数 | `9223` / `9323` |
-| `PUBLIC_WS_HOST` | 若设置，创建会话返回的 `wsEndpoint` 会把主机名改为该值（不含协议） | 未设置则保留 Chromium 原始值（多为 `127.0.0.1`） |
+| `PUBLIC_WS_HOST` | 若设置，创建会话返回的 `wsEndpoint` 会把主机名改为该值（不含协议） | 未设置则多为 `127.0.0.1` |
 
-Docker 内还可通过 `DISPLAY`、`VNC_PORT`、`NOVNC_PORT`、`VNC_PASSWORD` 等控制虚拟显示与 VNC（见 `docker-entrypoint.sh`）。
+Docker 基于 [jlesage/baseimage-gui](https://github.com/jlesage/docker-baseimage-gui)：Web 访问桌面默认端口为 `WEB_LISTENING_PORT`（镜像内 `9221`），原生 VNC 为 `VNC_LISTENING_PORT`（默认 `5900`），密码见 `VNC_PASSWORD`。
 
 ## Docker
 
@@ -124,12 +126,12 @@ Docker 内还可通过 `DISPLAY`、`VNC_PORT`、`NOVNC_PORT`、`VNC_PASSWORD` �
 docker build -t cloud-browser .
 ```
 
-运行（映射 API、noVNC、并 **持久化** Chrome 用户数据目录）：
+运行（映射 API、Web 桌面、VNC、调试端口，并 **持久化** 用户数据目录）：
 
 ```bash
 docker run --rm \
   -p 9222:9222 \
-  -p 9221:9221 \
+  -p 9221:5900 \
   -p 9223-9323:9223-9323 \
   -v cloud-browser-profiles:/data/chrome-profiles \
   cloud-browser

@@ -6,8 +6,15 @@ import puppeteerCore from "puppeteer";
 import { addExtra, type VanillaPuppeteer } from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 
+const puppeteerBrowser = (
+  process.env.PUPPETEER_BROWSER || "firefox"
+).toLowerCase();
+const useChrome = puppeteerBrowser === "chrome";
+
 const puppeteer = addExtra(puppeteerCore as unknown as VanillaPuppeteer);
-puppeteer.use(StealthPlugin());
+if (useChrome) {
+  puppeteer.use(StealthPlugin());
+}
 
 const SESSION_TTL_MS = 30_000;
 const SESSION_ID_MAX_LEN = 128;
@@ -41,6 +48,7 @@ type SessionEntry = {
   wsEndpoint: string;
   ticket: string;
   timer: ReturnType<typeof setTimeout> | null;
+  /** Remote debugging port (Chrome CDP or Firefox WebDriver BiDi HTTP listener). */
   cdpPort: number;
   expiresAt: number;
 };
@@ -60,7 +68,7 @@ function ticketsMatch(expected: string, provided: string): boolean {
   }
 }
 
-function defaultLaunchArgs(extra: string[], cdpPort: number): string[] {
+function chromeLaunchArgs(extra: string[], debugPort: number): string[] {
   return [
     "--disable-infobars",
     "--no-sandbox",
@@ -70,8 +78,26 @@ function defaultLaunchArgs(extra: string[], cdpPort: number): string[] {
     "--lang=zh-CN,zh",
     "--disable-blink-features=AutomationControlled",
     `--window-size=${process.env.VIEWPORT_WIDTH},${process.env.VIEWPORT_HEIGHT}`,
-    `--remote-debugging-port=${cdpPort}`,
+    `--remote-debugging-port=${debugPort}`,
     "--remote-debugging-address=0.0.0.0",
+    ...extra,
+  ];
+}
+
+/** Firefox: WebDriver BiDi on --remote-debugging-port; optional host allowlist for non-loopback clients. */
+function firefoxLaunchArgs(extra: string[], debugPort: number): string[] {
+  const w = process.env.VIEWPORT_WIDTH || "1366";
+  const h = process.env.VIEWPORT_HEIGHT || "768";
+  const allowHosts = process.env.FIREFOX_REMOTE_ALLOW_HOSTS?.trim();
+  return [
+    "-width",
+    w,
+    "-height",
+    h,
+    `--remote-debugging-port=${debugPort}`,
+    ...(allowHosts && allowHosts.length > 0
+      ? [`--remote-allow-hosts=${allowHosts}`]
+      : []),
     ...extra,
   ];
 }
@@ -112,12 +138,12 @@ export function getSessionCount(): number {
 
 export type CreateSessionResult =
   | {
-    ok: true;
-    sessionId: string;
-    ticket: string;
-    wsEndpoint: string;
-    expiresAt: number;
-  }
+      ok: true;
+      sessionId: string;
+      ticket: string;
+      wsEndpoint: string;
+      expiresAt: number;
+    }
   | { ok: false; error: "INVALID_SESSION_ID" | "SESSION_ID_IN_USE" };
 
 const CDP_PORT_MIN = parseInt(process.env.CDP_PORT_MIN || "9223");
@@ -151,16 +177,27 @@ export async function createSession(
   mkdirSync(getUserDataRoot(), { recursive: true });
   const cdpPort = getAvailableCdpPort();
 
+  const execPath = process.env.PUPPETEER_EXECUTABLE_PATH?.trim();
   let instance: Browser;
   try {
-    instance = await puppeteer.launch({
-      browser: "chrome",
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
-      headless: false,
-      ignoreDefaultArgs: ['--enable-automation'],
-      args: defaultLaunchArgs(args, cdpPort),
-      userDataDir: userDataDirForSession(sessionId),
-    });
+    if (useChrome) {
+      instance = await puppeteer.launch({
+        browser: "chrome",
+        executablePath: execPath && execPath.length > 0 ? execPath : undefined,
+        headless: false,
+        ignoreDefaultArgs: ["--enable-automation"],
+        args: chromeLaunchArgs(args, cdpPort),
+        userDataDir: userDataDirForSession(sessionId),
+      });
+    } else {
+      instance = await puppeteer.launch({
+        browser: "firefox",
+        executablePath: execPath && execPath.length > 0 ? execPath : undefined,
+        headless: false,
+        args: firefoxLaunchArgs(args, cdpPort),
+        userDataDir: userDataDirForSession(sessionId),
+      });
+    }
   } catch (e) {
     pendingSessionIds.delete(sessionId);
     throw e;
@@ -173,7 +210,7 @@ export async function createSession(
     wsEndpoint,
     ticket,
     timer: null,
-    cdpPort: 0,
+    cdpPort,
     expiresAt: 0,
   };
   sessions.set(sessionId, entry);
