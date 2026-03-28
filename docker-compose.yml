@@ -13,10 +13,10 @@ services:
       - "9222:9222"
       - "9223-9323:9223-9323/tcp"
     volumes:
-      - chrome-profiles:/data/chrome-profiles
+      - firefox-profiles:/data/firefox-profiles
     environment:
       TZ: Asia/Shanghai
       VNC_PASSWORD: ${VNC_PASSWORD:-password}
 
 volumes:
-  chrome-profiles:
+  firefox-profiles:

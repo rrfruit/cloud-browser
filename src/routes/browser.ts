@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+﻿import { Hono } from "hono";
 import {
   closeSession,
   createSession,
@@ -23,8 +23,8 @@ router.post("/session", async (c) => {
       result.error === "INVALID_SESSION_ID" ? 400 : 409;
     return c.json({ error: result.error }, status);
   }
-  const { sessionId, ticket, wsEndpoint, expiresAt } = result;
-  return c.json({ sessionId, ticket, wsEndpoint, expiresAt }, 201);
+  const { sessionId, ticket, wsEndpoint, cdpPort, expiresAt } = result;
+  return c.json({ sessionId, ticket, wsEndpoint, cdpPort, expiresAt }, 201);
 });
 
 router.post("/session/:id/renew", async (c) => {

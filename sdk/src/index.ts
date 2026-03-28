@@ -21,8 +21,8 @@ export type CreateSessionResponse = {
   ticket: string;
   wsEndpoint: string;
   expiresAt: number;
-  /** 若服务端将来返回调试端口，会出现在此字段 */
-  cdpPort?: number;
+  /** 该会话的 Firefox 远程调试 TCP 端口（与 wsEndpoint 一致） */
+  cdpPort: number;
 };
 
 export type RenewSessionResponse = {

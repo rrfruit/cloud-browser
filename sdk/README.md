@@ -1,6 +1,6 @@
 # cloud-browser-sdk
 
-面向 [cloud-browser](../README.md) HTTP API 的 TypeScript 客户端。仅依赖 **全局 `fetch`**（Node.js 18+ 或支持 Fetch 的运行时），无 Puppeteer 等浏览器依赖；拿到 `wsEndpoint` 后请自行用 `puppeteer.connect`、`chrome-remote-interface` 等连接 CDP。
+面向 [cloud-browser](../README.md) HTTP API 的 TypeScript 客户端。仅依赖 **全局 `fetch`**（Node.js 18+ 或支持 Fetch 的运行时），无 Puppeteer 等浏览器依赖；拿到 `wsEndpoint` 后请自行用 `puppeteer.connect` 等连接 **WebDriver BiDi**（需兼容的 Puppeteer 版本）。
 
 ## 安装
 
@@ -71,12 +71,12 @@ try {
 ### `createSession(body)`
 
 - `body.sessionId`（必填）：与服务端规则一致，trim 后长度 1～128，字符集 `[\w.-]`。
-- `body.args`（可选）：追加传给 Chromium 的命令行参数。
+- `body.args`（可选）：追加传给 Firefox 的命令行参数。
 
 成功时返回：
 
 - `sessionId`、`ticket`、`wsEndpoint`、`expiresAt`（Unix 毫秒时间戳）
-- `cdpPort`（可选）：若未来服务端在 JSON 中返回，类型中已预留
+- `cdpPort`：Firefox 远程调试 TCP 端口
 
 ### `sessionId` 与 URL
 

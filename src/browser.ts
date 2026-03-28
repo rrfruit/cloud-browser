@@ -2,12 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import type { Browser } from "puppeteer";
-import puppeteerCore from "puppeteer";
-import { addExtra, type VanillaPuppeteer } from "puppeteer-extra";
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
-
-const puppeteer = addExtra(puppeteerCore as unknown as VanillaPuppeteer);
-puppeteer.use(StealthPlugin());
+import puppeteer from "puppeteer";
 
 const SESSION_TTL_MS = 30_000;
 const SESSION_ID_MAX_LEN = 128;
@@ -25,7 +20,7 @@ function validateSessionId(raw: unknown): string | null {
   return id;
 }
 
-/** Docker: set BROWSER_USER_DATA_ROOT to a mounted volume (e.g. /data/chrome-profiles). */
+/** Docker: set BROWSER_USER_DATA_ROOT to a mounted volume (e.g. /data/firefox-profiles). */
 function getUserDataRoot(): string {
   const raw = process.env.BROWSER_USER_DATA_ROOT?.trim();
   return raw && raw.length > 0 ? raw : "/tmp";
@@ -60,18 +55,16 @@ function ticketsMatch(expected: string, provided: string): boolean {
   }
 }
 
-function defaultLaunchArgs(extra: string[], cdpPort: number): string[] {
+/** Firefox: fixed remote debugging port for WebDriver BiDi; window size via -width/-height. */
+function defaultLaunchArgs(extra: string[], debugPort: number): string[] {
+  const w = process.env.VIEWPORT_WIDTH ?? "1366";
+  const h = process.env.VIEWPORT_HEIGHT ?? "768";
   return [
-    "--disable-infobars",
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-gpu",
-    "--lang=zh-CN,zh",
-    "--disable-blink-features=AutomationControlled",
-    `--window-size=${process.env.VIEWPORT_WIDTH},${process.env.VIEWPORT_HEIGHT}`,
-    `--remote-debugging-port=${cdpPort}`,
-    "--remote-debugging-address=0.0.0.0",
+    `--remote-debugging-port=${debugPort}`,
+    "-width",
+    w,
+    "-height",
+    h,
     ...extra,
   ];
 }
@@ -112,12 +105,13 @@ export function getSessionCount(): number {
 
 export type CreateSessionResult =
   | {
-    ok: true;
-    sessionId: string;
-    ticket: string;
-    wsEndpoint: string;
-    expiresAt: number;
-  }
+      ok: true;
+      sessionId: string;
+      ticket: string;
+      wsEndpoint: string;
+      cdpPort: number;
+      expiresAt: number;
+    }
   | { ok: false; error: "INVALID_SESSION_ID" | "SESSION_ID_IN_USE" };
 
 const CDP_PORT_MIN = parseInt(process.env.CDP_PORT_MIN || "9223");
@@ -151,15 +145,19 @@ export async function createSession(
   mkdirSync(getUserDataRoot(), { recursive: true });
   const cdpPort = getAvailableCdpPort();
 
+  const execPath = process.env.PUPPETEER_EXECUTABLE_PATH?.trim();
+
   let instance: Browser;
   try {
     instance = await puppeteer.launch({
-      browser: "chrome",
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+      browser: "firefox",
+      ...(execPath ? { executablePath: execPath } : {}),
       headless: false,
-      ignoreDefaultArgs: ['--enable-automation'],
       args: defaultLaunchArgs(args, cdpPort),
       userDataDir: userDataDirForSession(sessionId),
+      extraPrefsFirefox: {
+        "devtools.debugger.remote.force-local": false,
+      },
     });
   } catch (e) {
     pendingSessionIds.delete(sessionId);
@@ -173,7 +171,7 @@ export async function createSession(
     wsEndpoint,
     ticket,
     timer: null,
-    cdpPort: 0,
+    cdpPort,
     expiresAt: 0,
   };
   sessions.set(sessionId, entry);
@@ -193,6 +191,7 @@ export async function createSession(
     sessionId,
     ticket,
     wsEndpoint,
+    cdpPort,
     expiresAt: sessions.get(sessionId)!.expiresAt,
   };
 }

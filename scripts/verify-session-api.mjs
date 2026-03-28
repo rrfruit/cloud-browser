@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 import { randomUUID } from "node:crypto";
 
 async function delay(ms) {
@@ -6,7 +6,7 @@ async function delay(ms) {
 }
 
 /**
- * Integration checks against a running API (needs Chrome / PUPPETEER_EXECUTABLE_PATH).
+ * Integration checks against a running API (needs Firefox / PUPPETEER_EXECUTABLE_PATH).
  * Usage: BASE_URL=http://127.0.0.1:9222 node scripts/verify-session-api.mjs
  * If the server is unreachable, exits 0 with a skip message.
  */
@@ -53,7 +53,7 @@ async function main() {
     throw new Error(`POST /browser/session expected 201, got ${create.status}`);
   }
   const session = await create.json();
-  const { sessionId, ticket, wsEndpoint, expiresAt } = session;
+  const { sessionId, ticket, wsEndpoint, cdpPort, expiresAt } = session;
   if (sessionId !== clientSessionId) {
     throw new Error(`expected sessionId ${clientSessionId}, got ${sessionId}`);
   }

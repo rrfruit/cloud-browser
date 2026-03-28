@@ -11,7 +11,7 @@ Xvfb "${DISPLAY}" -screen 0 1366x790x16 -ac -nolisten tcp +extension RANDR >/tmp
 # 等待 Xvfb 初始化完成后再启动依赖它的服务
 sleep 1
 
-# 启动 Fluxbox 窗口管理器，Chromium 需要 WM 才能正常创建窗口
+# 启动 Fluxbox 窗口管理器，Firefox 需要 WM 才能正常创建窗口
 echo "Starting Fluxbox window manager"
 fluxbox &
 sleep 1
