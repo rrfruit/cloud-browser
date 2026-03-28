@@ -109,7 +109,6 @@ function defaultLaunchArgs(extra: string[], debugPort: number): string[] {
   const w = process.env.VIEWPORT_WIDTH ?? "1366";
   const h = process.env.VIEWPORT_HEIGHT ?? "768";
   return [
-    `--remote-debugging-port=${debugPort}`,
     "-width",
     w,
     "-height",
@@ -154,13 +153,13 @@ export function getSessionCount(): number {
 
 export type CreateSessionResult =
   | {
-      ok: true;
-      sessionId: string;
-      ticket: string;
-      wsEndpoint: string;
-      cdpPort: number;
-      expiresAt: number;
-    }
+    ok: true;
+    sessionId: string;
+    ticket: string;
+    wsEndpoint: string;
+    cdpPort: number;
+    expiresAt: number;
+  }
   | { ok: false; error: "INVALID_SESSION_ID" | "SESSION_ID_IN_USE" };
 
 const CDP_PORT_MIN = parseInt(process.env.CDP_PORT_MIN || "9223");
@@ -216,7 +215,7 @@ export async function createSession(
 
   let wsEndpoint: string;
   try {
-    wsEndpoint = await resolveFirefoxWsEndpoint(cdpPort);
+    wsEndpoint = "ws://127.0.0.1:9223/devtools/browser/86073637-379e-486f-8130-100033478543" //await resolveFirefoxWsEndpoint(cdpPort);
   } catch (e) {
     pendingSessionIds.delete(sessionId);
     try {
