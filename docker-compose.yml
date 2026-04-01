@@ -1,22 +1,10 @@
-# 本地构建：docker compose build && docker compose up
-# 或一步：docker compose up --build
-# 镜像仅来自本仓库 Dockerfile，不会从 registry 拉取本服务镜像
+version: '3.8'
 services:
-  cloud-browser:
+  playwright-app:
     build:
       context: .
-      dockerfile: Dockerfile
-    image: cloud-browser:local
-    pull_policy: build
+    container_name: playwright-jlesage
     ports:
-      - "9221:5900"
-      - "9222:9222"
-      - "9223-9323:9223-9323/tcp"
-    volumes:
-      - chrome-profiles:/data/chrome-profiles
-    environment:
-      TZ: Asia/Shanghai
-      VNC_PASSWORD: ${VNC_PASSWORD:-password}
-
-volumes:
-  chrome-profiles:
+      - "5801:5801"
+      - "5800:5800"
+    shm_size: "2gb"

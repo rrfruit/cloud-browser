@@ -1,59 +1,29 @@
-# jlesage GUI stack (TigerVNC + noVNC + Openbox) + Firefox + Node API
-FROM jlesage/baseimage-gui:alpine-3.23-v4.11.3
+# 强烈建议使用 Ubuntu 22.04 版本的基础镜像
+FROM jlesage/baseimage-gui:ubuntu-22.04-v4
 
-ARG FIREFOX_VERSION=
+# 1. 设置环境变量 (这会显示在网页的 Title 上)
+ENV APP_NAME="Playwright Node Service"
 
-WORKDIR /tmp
+# 2. 安装 Node.js (修复版：补充 CA 证书，确保成功拉取 NodeSource 脚本)
+RUN apt-get update && \
+    apt-get install -y curl ca-certificates gnupg && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
 
-RUN \
-    if [ -n "$FIREFOX_VERSION" ]; then \
-        add-pkg firefox=${FIREFOX_VERSION}; \
-    else \
-        add-pkg firefox; \
-    fi && \
-    add-pkg \
-        nodejs \
-        npm \
-        font-dejavu \
-        mesa-dri-gallium \
-        libpulse
-
-ENV WEB_LISTENING_PORT=9221 \
-    VIEWPORT_WIDTH=1366 \
-    VIEWPORT_HEIGHT=768 \
-    PUPPETEER_SKIP_DOWNLOAD=1 \
-    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1 \
-    PUPPETEER_BROWSER=firefox \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/firefox \
-    BROWSER_USER_DATA_ROOT=/data/chrome-profiles \
-    CDP_PORT_MIN=9223 \
-    CDP_PORT_MAX=9323 \
-    MOZ_DISABLE_CONTENT_SANDBOX=1 \
-    MOZ_DISABLE_GMP_SANDBOX=1 \
-    MOZ_DISABLE_RDD_SANDBOX=1 \
-    MOZ_DISABLE_SOCKET_PROCESS_SANDBOX=1
+# (可选：加一个验证步骤，防止以后再静默失败)
+RUN node -v && npm -v
 
 WORKDIR /app
 
-COPY package.json package-lock.json tsconfig.json ./
-RUN npm ci
+COPY package.json tsconfig.json ensureBinary.js ./
+RUN npm install
 
-COPY src/ ./src/
-RUN npm run build && npm prune --omit=dev
+RUN node ensureBinary.js
 
-COPY rootfs/ /
-RUN chmod +x /startapp.sh /etc/services.d/cloud-browser/run
+COPY src ./src
 
-RUN \
-    mkdir -p /data/chrome-profiles && \
-    take-ownership /app && \
-    take-ownership /data/chrome-profiles
+RUN npm run build
 
-RUN set-cont-env APP_NAME "Cloud Browser"
+COPY startapp.sh /startapp.sh 
+RUN chmod +x /startapp.sh
 
-EXPOSE 9221
-EXPOSE 9222
-EXPOSE 5900
-EXPOSE 9223-9323/tcp
-
-VOLUME ["/data/chrome-profiles"]

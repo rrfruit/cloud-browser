@@ -1,5 +1,0 @@
-#!/bin/sh
-set -eu
-# jlesage creates user `app` matching USER_ID/GROUP_ID; s6 service uid files are unreliable here.
-cd /app
-exec s6-setuidgid app /usr/bin/node dist/main.js
