@@ -18,6 +18,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
+        # && fc-cache -fv \
+
+        # fonts-noto-cjk fonts-wqy-zenhei fonts-wqy-microhei \
+
+
 # # 2. 安装 Node.js (修复版：补充 CA 证书，确保成功拉取 NodeSource 脚本)
 # RUN apt-get update && \
 #     apt-get install -y curl ca-certificates gnupg && \

@@ -4,7 +4,11 @@ services:
     build:
       context: .
     container_name: playwright-jlesage
-    # environment:
+    environment:
+      - DISPLAY_WIDTH=1366
+      - DISPLAY_HEIGHT=768
+      - ENABLE_CJK_FONT=1
+      - VNC_PASSWORD=password
     #   USER_ID: "0"
     #   GROUP_ID: "0"
     ports:

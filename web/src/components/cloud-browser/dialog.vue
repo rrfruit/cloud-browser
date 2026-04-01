@@ -30,10 +30,13 @@
         </div>
       </div>
     </template>
-    <div class="flex flex-col justify-center items-center">
+    <div
+      class="flex flex-col justify-center items-center"
+      :style="browserContainerStyle"
+    >
       <iframe
         :src="url"
-        :style="{ width: `${width}px`, height: `${height}px` }"
+        :style="iframeStyle"
         frameborder="0"
       />
     </div>
@@ -41,7 +44,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { client } from "@/utils/client";
 
 const dialogVisible = ref(false);
@@ -56,6 +59,24 @@ const url = ref(defaultUrl);
 const handleFullscreen = () => {
   fullscreen.value = !fullscreen.value;
 };
+
+const browserContainerStyle = computed(() => {
+  if (fullscreen.value) {
+    return {
+      width: "calc(100vw - 32px)",
+      height: "calc(100vh - 120px)",
+    };
+  }
+  return {
+    width: `${width}px`,
+    height: `${height}px`,
+  };
+});
+
+const iframeStyle = computed(() => ({
+  width: "100%",
+  height: "100%",
+}));
 
 const openView = async () => {
   dialogVisible.value = true;

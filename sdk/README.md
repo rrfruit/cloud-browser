@@ -65,8 +65,10 @@ try {
 | `getHealth()` | `GET /health` | `{ status: string }` |
 | `getStatus()` | `GET /browser/status` | `{ sessionCount: number }` |
 | `createSession(body)` | `POST /browser/session` | 见下方 |
-| `renewSession(sessionId, ticket)` | `POST /browser/session/:id/renew` | `{ expiresAt: number }` |
-| `closeSession(sessionId, ticket)` | `POST /browser/session/:id/close` | `{ closed: true }` |
+| `renewSession(sessionId, ticket?)` | `POST /browser/session/:id/renew` | `{ expiresAt: number }` |
+| `closeSession(sessionId, ticket?)` | `POST /browser/session/:id/close` | `{ closed: true }` |
+| `getProfiles()` | `GET /browser/profiles` | `ProfileInfo[]` |
+| `unlockProfile(profileId)` | `POST /browser/profile/:id/unlock` | `{ id: string; removed: string[] }` |
 
 ### `createSession(body)`
 
@@ -81,6 +83,16 @@ try {
 ### `sessionId` 与 URL
 
 `renewSession` / `closeSession` 中的 `sessionId` 会经 `encodeURIComponent` 再放入路径，一般无需自行编码。
+
+### `ticket` 参数说明
+
+`renewSession` / `closeSession` 的 `ticket` 在 SDK 中为可选参数（`ticket?`），用于兼容不同后端实现。  
+如果你的服务端启用了票据校验，仍应传入创建会话时返回的 `ticket`。
+
+### Profiles 相关方法
+
+- `getProfiles()`：获取当前 profile 列表，返回 `ProfileInfo[]`（`id`、`active`、`expiresAt`）。
+- `unlockProfile(profileId)`：解除指定 profile 的锁文件占用，成功时返回被移除的文件路径列表。
 
 ## 错误处理
 
@@ -118,7 +130,7 @@ try {
 
 ## 类型导出
 
-包内同时导出请求/响应类型，便于上层封装：`CloudBrowserClientOptions`、`SessionStatusResponse`、`CreateSessionRequest`、`CreateSessionResponse`、`RenewSessionResponse`、`CloseSessionResponse`、`ApiErrorBody` 等（见源码 `src/index.ts`）。
+包内同时导出请求/响应类型，便于上层封装：`CloudBrowserClientOptions`、`SessionStatusResponse`、`CreateSessionRequest`、`CreateSessionResponse`、`RenewSessionResponse`、`CloseSessionResponse`、`ProfileInfo`、`UnlockProfileResponse`、`ApiErrorBody` 等（见源码 `src/index.ts`）。
 
 ## 完整 HTTP 语义
 

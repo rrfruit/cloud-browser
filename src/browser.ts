@@ -36,7 +36,9 @@ const defaultArgs: string[] = [
   '--disable-dev-shm-usage',
   '--disable-setuid-sandbox',
   '--window-position=0,0',
-  '--start-maximized' // 让浏览器一出来就最大化铺满屏幕
+  '--start-maximized', // 让浏览器一出来就最大化铺满屏幕
+  '--remote-allow-origins=*',
+  '--remote-debugging-port=9223'
 ]
 
 export type CreateBrowserOptions = {

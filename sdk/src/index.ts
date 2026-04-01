@@ -33,6 +33,17 @@ export type CloseSessionResponse = {
   closed: true;
 };
 
+export type ProfileInfo = {
+  id: string;
+  active: boolean;
+  expiresAt: number | null;
+};
+
+export type UnlockProfileResponse = {
+  id: string;
+  removed: string[];
+};
+
 export type ApiErrorBody = {
   error?: string;
 };
@@ -143,14 +154,14 @@ export class CloudBrowserClient {
   /** `POST /browser/session/:id/renew` */
   async renewSession(
     sessionId: string,
-    ticket: string
+    ticket?: string
   ): Promise<RenewSessionResponse> {
     const id = encodeURIComponent(sessionId);
     return this.request<RenewSessionResponse>(
       `/browser/session/${id}/renew`,
       {
         method: "POST",
-        jsonBody: { ticket },
+        jsonBody: ticket ? { ticket } : {},
       }
     );
   }
@@ -158,16 +169,31 @@ export class CloudBrowserClient {
   /** `POST /browser/session/:id/close` */
   async closeSession(
     sessionId: string,
-    ticket: string
+    ticket?: string
   ): Promise<CloseSessionResponse> {
     const id = encodeURIComponent(sessionId);
     return this.request<CloseSessionResponse>(
       `/browser/session/${id}/close`,
       {
         method: "POST",
-        jsonBody: { ticket },
+        jsonBody: ticket ? { ticket } : {},
       }
     );
+  }
+
+  /** `GET /browser/profiles` */
+  async getProfiles(): Promise<ProfileInfo[]> {
+    return this.request<ProfileInfo[]>("/browser/profiles", {
+      method: "GET",
+    });
+  }
+
+  /** `POST /browser/profile/:id/unlock` */
+  async unlockProfile(profileId: string): Promise<UnlockProfileResponse> {
+    const id = encodeURIComponent(profileId);
+    return this.request<UnlockProfileResponse>(`/browser/profile/${id}/unlock`, {
+      method: "POST",
+    });
   }
 }
 
