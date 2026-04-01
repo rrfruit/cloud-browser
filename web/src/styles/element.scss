@@ -1,0 +1,12 @@
+.el-button + .el-button {
+  margin-left: 8px !important;
+}
+
+.flex-wrap {
+  .el-input {
+    --el-input-width: 220px;
+  }
+  .el-select {
+    --el-select-width: 220px;
+  }
+}
