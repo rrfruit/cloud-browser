@@ -4,6 +4,9 @@ services:
     build:
       context: .
     container_name: playwright-jlesage
+    # environment:
+    #   USER_ID: "0"
+    #   GROUP_ID: "0"
     ports:
       - "5801:5801"
       - "5800:5800"

@@ -57,7 +57,7 @@ async function createBrowser(id: string, options: CreateBrowserOptions = {}) {
     });
 
     const page = await browser.newPage();
-    await page.goto('https://protected-site.com');
+    await page.goto('https://baidu.com');
 
     const session: Session = {
       id,
