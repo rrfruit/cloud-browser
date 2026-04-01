@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import { cloudBrowserClient } from "../browser.js";
 
 const router = new Hono()
-  .get("/sessions", (c) => {
-    return c.json(cloudBrowserClient.getSessions());
+  .get("/profiles", async (c) => {
+    return c.json(await cloudBrowserClient.getProfiles());
   })
   .post("/session", async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as {

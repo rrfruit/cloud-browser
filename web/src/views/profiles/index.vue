@@ -1,20 +1,27 @@
 <template>
   <div class="space-y-4">
     <div class="flex items-center gap-2">
-      <span class="text-gray-500 text-sm">共 {{ list.length }} 个活跃会话</span>
-      <el-button @click="fetchSessions" :loading="loading">刷新</el-button>
-      <el-button type="primary" @click="showCreateDialog = true">新建会话</el-button>
+      <span class="text-gray-500 text-sm">共 {{ list.length }} 个 Profiles</span>
+      <el-button @click="fetchProfiles" :loading="loading">刷新</el-button>
+      <el-button type="primary" @click="showCreateDialog = true">启动 Profile 会话</el-button>
     </div>
 
     <el-table :data="list" v-loading="loading" border>
-      <el-table-column label="会话 ID" prop="id" min-width="200">
+      <el-table-column label="Profile ID" prop="id" min-width="200">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openSessionView(row.id)">{{ row.id }}</el-button>
+          <el-button link type="primary" @click="openProfileView(row.id)">{{ row.id }}</el-button>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" min-width="120">
+        <template #default="{ row }">
+          <el-tag :type="row.active ? 'success' : 'info'" size="small">
+            {{ row.active ? "活跃" : "未启动" }}
+          </el-tag>
         </template>
       </el-table-column>
       <el-table-column label="过期时间" min-width="200">
         <template #default="{ row }">
-          <span>{{ formatDate(row.expiresAt) }}</span>
+          <span>{{ row.expiresAt ? formatDate(row.expiresAt) : "-" }}</span>
         </template>
       </el-table-column>
       <el-table-column label="剩余时间" min-width="140">
@@ -36,33 +43,33 @@
     </el-table>
   </div>
 
-  <CreateSessionDialog v-model="showCreateDialog" @success="fetchSessions" />
+  <CreateProfileDialog v-model="showCreateDialog" @success="fetchProfiles" />
   <CloudBrowserDialog ref="cloudBrowserDialogRef" />
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted } from "vue";
 import { client } from "@/utils/client";
-import CreateSessionDialog from "./CreateSessionDialog.vue";
+import CreateProfileDialog from "./CreateProfileDialog.vue";
 import CloudBrowserDialog from "@/components/cloud-browser/dialog.vue";
 
-type SessionInfo = { id: string; expiresAt: number };
+type ProfileInfo = { id: string; active: boolean; expiresAt: number | null };
 
-const list = ref<SessionInfo[]>([]);
+const list = ref<ProfileInfo[]>([]);
 const loading = ref(false);
 const closingId = ref<string | null>(null);
 
 const showCreateDialog = ref(false);
 const cloudBrowserDialogRef = ref<InstanceType<typeof CloudBrowserDialog> | null>(null);
 
-function openSessionView(id: string) {
+function openProfileView(id: string) {
   cloudBrowserDialogRef.value?.open(id, async () => true);
 }
 
-async function fetchSessions() {
+async function fetchProfiles() {
   loading.value = true;
   try {
-    const res = await client.browser.sessions.$get();
+    const res = await client.browser.profiles.$get();
     if (res.ok) {
       list.value = await res.json();
     }
@@ -77,7 +84,7 @@ async function handleClose(id: string) {
     const res = await client.browser.session[":id"].close.$post({ param: { id } });
     if (res.ok) {
       ElMessage.success("会话已关闭");
-      await fetchSessions();
+      await fetchProfiles();
     }
   } finally {
     closingId.value = null;
@@ -88,7 +95,8 @@ function formatDate(ts: number) {
   return new Date(ts).toLocaleString("zh-CN");
 }
 
-function formatRemaining(expiresAt: number) {
+function formatRemaining(expiresAt: number | null) {
+  if (!expiresAt) return "-";
   const diff = expiresAt - Date.now();
   if (diff <= 0) return "已过期";
   const mins = Math.floor(diff / 60000);
@@ -97,12 +105,13 @@ function formatRemaining(expiresAt: number) {
   return `${secs} 秒`;
 }
 
-function getTagType(expiresAt: number): "danger" | "warning" | "success" {
+function getTagType(expiresAt: number | null): "danger" | "warning" | "success" | "info" {
+  if (!expiresAt) return "info";
   const diff = expiresAt - Date.now();
   if (diff <= 0) return "danger";
   if (diff < 5 * 60 * 1000) return "warning";
   return "success";
 }
 
-onMounted(fetchSessions);
+onMounted(fetchProfiles);
 </script>

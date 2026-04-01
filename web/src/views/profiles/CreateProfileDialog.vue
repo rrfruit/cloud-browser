@@ -1,19 +1,19 @@
 <template>
   <el-dialog
     :model-value="modelValue"
-    title="新建会话"
+    title="启动 Profile 会话"
     width="400px"
     @update:model-value="onVisibleChange"
     @closed="resetForm"
   >
     <el-form :model="form" label-width="80px">
-      <el-form-item label="会话 ID">
-        <el-input v-model="form.sessionId" placeholder="请输入会话 ID" clearable />
+      <el-form-item label="Profile ID">
+        <el-input v-model="form.sessionId" placeholder="请输入 Profile ID" clearable />
       </el-form-item>
     </el-form>
     <template #footer>
       <el-button @click="close">取消</el-button>
-      <el-button type="primary" :loading="creating" @click="submit">创建</el-button>
+      <el-button type="primary" :loading="creating" @click="submit">启动</el-button>
     </template>
   </el-dialog>
 </template>
@@ -52,7 +52,7 @@ watch(
 
 async function submit() {
   if (!form.value.sessionId.trim()) {
-    ElMessage.warning("请输入会话 ID");
+    ElMessage.warning("请输入 Profile ID");
     return;
   }
   creating.value = true;
@@ -61,7 +61,7 @@ async function submit() {
       json: { sessionId: form.value.sessionId.trim() },
     });
     if (res.ok) {
-      ElMessage.success("会话创建成功");
+      ElMessage.success("Profile 会话已启动");
       close();
       emit("success");
     }

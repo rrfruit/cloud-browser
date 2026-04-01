@@ -4,17 +4,17 @@ import { getToken } from "../utils/token";
 const dashboardRoutes: RouteRecordRaw[] = [
   {
     path: "/",
-    redirect: "/sessions",
+    redirect: "/profiles",
     meta: { hidden: true },
   },
   {
-    path: "sessions",
-    name: "sessions",
+    path: "profiles",
+    name: "profiles",
     meta: {
-      title: "活跃会话",
+      title: "Profiles",
       icon: "i-solar:monitor-smartphone-bold",
     },
-    component: () => import("../views/sessions/index.vue"),
+    component: () => import("../views/profiles/index.vue"),
   },
 
 ];

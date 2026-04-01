@@ -1,6 +1,6 @@
 import type { BrowserContext } from "playwright-core";
 import { launchPersistentContext, type LaunchPersistentContextOptions } from 'cloakbrowser';
-import { access, rm } from 'node:fs/promises';
+import { access, readdir, rm } from 'node:fs/promises';
 
 export const VNC_URL = process.env.VNC_URL!;
 
@@ -13,6 +13,12 @@ type Session = {
   browser: BrowserContext;
   expiresAt: number;
 }
+
+type Profile = {
+  id: string;
+  active: boolean;
+  expiresAt: number | null;
+};
 
 const sessions: Record<string, Session> = {};
 
@@ -142,6 +148,29 @@ function getSessions() {
   return Object.values(sessions).map(({ id, expiresAt }) => ({ id, expiresAt }));
 }
 
+async function getProfiles(): Promise<Profile[]> {
+  try {
+    const entries = await readdir('/data/profiles', { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => {
+        const session = sessions[entry.name];
+        return {
+          id: entry.name,
+          active: Boolean(session),
+          expiresAt: session?.expiresAt ?? null,
+        };
+      })
+      .sort((a, b) => a.id.localeCompare(b.id));
+  } catch (error) {
+    const errorCode = (error as NodeJS.ErrnoException).code;
+    if (errorCode === 'ENOENT') {
+      return [];
+    }
+    throw error;
+  }
+}
+
 export const cloudBrowserClient = {
   createBrowser,
   renewSession,
@@ -149,4 +178,5 @@ export const cloudBrowserClient = {
   deleteProfile,
   startSessionKeepAlive,
   getSessions,
+  getProfiles,
 }
