@@ -22,6 +22,11 @@ const router = new Hono()
     const sessionId = c.req.param("id");
     const result = await cloudBrowserClient.closeSession(sessionId!);
     return c.json(result, 200);
+  })
+  .post("/profile/:id/unlock", async (c) => {
+    const profileId = c.req.param("id");
+    const result = await cloudBrowserClient.unlockProfile(profileId!);
+    return c.json(result, 200);
   });
 
 export default router;

@@ -51,16 +51,54 @@ watch(
 );
 
 async function submit() {
-  if (!form.value.sessionId.trim()) {
+  const profileId = form.value.sessionId.trim();
+  if (!profileId) {
     ElMessage.warning("请输入 Profile ID");
     return;
   }
   creating.value = true;
   try {
     const res = await client.browser.session.$post({
-      json: { sessionId: form.value.sessionId.trim() },
+      json: { sessionId: profileId },
     });
     if (res.ok) {
+      ElMessage.success("Profile 会话已启动");
+      close();
+      emit("success");
+      return;
+    }
+
+    const errorText = (await res.text()).toLowerCase();
+    const isProfileLocked = errorText.includes("profile appears to be in use");
+    if (!isProfileLocked) {
+      return;
+    }
+
+    try {
+      await ElMessageBox.confirm(
+        "检测到 Profile 被锁定，是否先解除占用再重试？",
+        "Profile 占用提示",
+        {
+          type: "warning",
+          confirmButtonText: "解除并重试",
+          cancelButtonText: "取消",
+        },
+      );
+    } catch {
+      return;
+    }
+
+    const unlockRes = await client.browser.profile[":id"].unlock.$post({
+      param: { id: profileId },
+    });
+    if (!unlockRes.ok) {
+      return;
+    }
+
+    const retryRes = await client.browser.session.$post({
+      json: { sessionId: profileId },
+    });
+    if (retryRes.ok) {
       ElMessage.success("Profile 会话已启动");
       close();
       emit("success");

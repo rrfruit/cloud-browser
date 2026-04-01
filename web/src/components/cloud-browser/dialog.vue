@@ -50,7 +50,7 @@ const confirmLoading = ref(false);
 const height = window.innerHeight * 0.75;
 const width = height * (1376 / 768);
 
-const defaultUrl = `http://localhost:5800/vnc.html#password=password&autoconnect=true&reconnect=true&reconnect_delay=5000&resize=scale&view_only=false`;
+const defaultUrl = `http://localhost:5800`;
 const url = ref(defaultUrl);
 
 const handleFullscreen = () => {

@@ -31,13 +31,20 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="100" align="center">
+      <el-table-column label="操作" width="220" align="center">
         <template #default="{ row }">
-          <el-popconfirm title="确认关闭该会话？" @confirm="handleClose(row.id)">
-            <template #reference>
-              <el-button type="danger" size="small" :loading="closingId === row.id">关闭</el-button>
-            </template>
-          </el-popconfirm>
+          <div class="flex items-center justify-center gap-2">
+            <el-popconfirm title="确认解除该 Profile 占用？" @confirm="handleUnlock(row.id)">
+              <template #reference>
+                <el-button size="small" :loading="unlockingId === row.id">解除占用</el-button>
+              </template>
+            </el-popconfirm>
+            <el-popconfirm title="确认关闭该会话？" @confirm="handleClose(row.id)">
+              <template #reference>
+                <el-button type="danger" size="small" :loading="closingId === row.id">关闭</el-button>
+              </template>
+            </el-popconfirm>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -58,6 +65,7 @@ type ProfileInfo = { id: string; active: boolean; expiresAt: number | null };
 const list = ref<ProfileInfo[]>([]);
 const loading = ref(false);
 const closingId = ref<string | null>(null);
+const unlockingId = ref<string | null>(null);
 
 const showCreateDialog = ref(false);
 const cloudBrowserDialogRef = ref<InstanceType<typeof CloudBrowserDialog> | null>(null);
@@ -88,6 +96,19 @@ async function handleClose(id: string) {
     }
   } finally {
     closingId.value = null;
+  }
+}
+
+async function handleUnlock(id: string) {
+  unlockingId.value = id;
+  try {
+    const res = await client.browser.profile[":id"].unlock.$post({ param: { id } });
+    if (res.ok) {
+      ElMessage.success("Profile 占用已解除");
+      await fetchProfiles();
+    }
+  } finally {
+    unlockingId.value = null;
   }
 }
 

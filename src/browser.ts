@@ -8,6 +8,15 @@ function getFirefoxProfilePath(id: string) {
   return `/data/profiles/${id}`;
 }
 
+function getProfileSingletonPaths(id: string) {
+  const profilePath = getFirefoxProfilePath(id);
+  return [
+    `${profilePath}/SingletonCookie`,
+    `${profilePath}/SingletonLock`,
+    `${profilePath}/SingletonSocket`,
+  ];
+}
+
 type Session = {
   id: string;
   browser: BrowserContext;
@@ -55,6 +64,7 @@ async function createBrowser(id: string, options: CreateBrowserOptions = {}) {
     browser = await launchPersistentContext({
       ...options,
       args: [...defaultArgs, ...(options.args ?? [])],
+      headless: false,
       userDataDir: profilePath,
     });
 
@@ -108,6 +118,20 @@ async function deleteProfile(sessionId: string) {
     await closeSession(sessionId);
   }
   await rm(getFirefoxProfilePath(sessionId), { recursive: true, force: true });
+}
+
+async function unlockProfile(profileId: string) {
+  if (sessions[profileId]) {
+    await closeSession(profileId);
+  }
+
+  const paths = getProfileSingletonPaths(profileId);
+  await Promise.all(paths.map((path) => rm(path, { recursive: true, force: true })));
+
+  return {
+    id: profileId,
+    removed: paths,
+  };
 }
 
 function startSessionKeepAlive(sessionId: string, maxKeepAliveTimeMs: number = 60 * 60 * 1000) {
@@ -176,6 +200,7 @@ export const cloudBrowserClient = {
   renewSession,
   closeSession,
   deleteProfile,
+  unlockProfile,
   startSessionKeepAlive,
   getSessions,
   getProfiles,
