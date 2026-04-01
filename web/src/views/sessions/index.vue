@@ -7,7 +7,11 @@
     </div>
 
     <el-table :data="list" v-loading="loading" border>
-      <el-table-column label="会话 ID" prop="id" min-width="200" />
+      <el-table-column label="会话 ID" prop="id" min-width="200">
+        <template #default="{ row }">
+          <el-button link type="primary" @click="openSessionView(row.id)">{{ row.id }}</el-button>
+        </template>
+      </el-table-column>
       <el-table-column label="过期时间" min-width="200">
         <template #default="{ row }">
           <span>{{ formatDate(row.expiresAt) }}</span>
@@ -33,12 +37,14 @@
   </div>
 
   <CreateSessionDialog v-model="showCreateDialog" @success="fetchSessions" />
+  <CloudBrowserDialog ref="cloudBrowserDialogRef" />
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted } from "vue";
 import { client } from "@/utils/client";
 import CreateSessionDialog from "./CreateSessionDialog.vue";
+import CloudBrowserDialog from "@/components/cloud-browser/dialog.vue";
 
 type SessionInfo = { id: string; expiresAt: number };
 
@@ -47,6 +53,11 @@ const loading = ref(false);
 const closingId = ref<string | null>(null);
 
 const showCreateDialog = ref(false);
+const cloudBrowserDialogRef = ref<InstanceType<typeof CloudBrowserDialog> | null>(null);
+
+function openSessionView(id: string) {
+  cloudBrowserDialogRef.value?.open(id, async () => true);
+}
 
 async function fetchSessions() {
   loading.value = true;

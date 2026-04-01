@@ -5,7 +5,7 @@ import { access, rm } from 'node:fs/promises';
 export const VNC_URL = process.env.VNC_URL!;
 
 function getFirefoxProfilePath(id: string) {
-  return `/data/firefox-profiles/${id}`;
+  return `/data/profiles/${id}`;
 }
 
 type Session = {

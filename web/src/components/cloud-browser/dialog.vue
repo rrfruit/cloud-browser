@@ -5,7 +5,7 @@
     center
     draggable
     :width="width + 40"
-    :fullscreen="fullscreen || !dialogVisible"
+    :fullscreen="fullscreen"
     :close-on-press-escape="false"
     :close-on-click-modal="false"
     :show-close="false"
@@ -17,14 +17,25 @@
           <span>ID: {{ sessionId ?? "--" }}</span>
         </div>
         <div>
-          <el-button plain type="primary" @click="handleFullscreen">全屏</el-button>
+          <el-button plain type="primary" @click="handleFullscreen"
+            >全屏</el-button
+          >
           <el-button plain type="warning" @click="close">关闭</el-button>
-          <el-button type="primary" :loading="confirmLoading" @click="handleConfirm">确定</el-button>
+          <el-button
+            type="primary"
+            :loading="confirmLoading"
+            @click="handleConfirm"
+            >确定</el-button
+          >
         </div>
       </div>
     </template>
     <div class="flex flex-col justify-center items-center">
-      <iframe :src="url" :style="{ width: `${width}px`, height: `${height}px` }" frameborder="0" />
+      <iframe
+        :src="url"
+        :style="{ width: `${width}px`, height: `${height}px` }"
+        frameborder="0"
+      />
     </div>
   </el-dialog>
 </template>
@@ -39,7 +50,7 @@ const confirmLoading = ref(false);
 const height = window.innerHeight * 0.75;
 const width = height * (1376 / 768);
 
-const defaultUrl = `http://localhost:9221/vnc.html#password=password&autoconnect=true&reconnect=true&reconnect_delay=5000&resize=scale&view_only=false`;
+const defaultUrl = `http://localhost:5800/vnc.html#password=password&autoconnect=true&reconnect=true&reconnect_delay=5000&resize=scale&view_only=false`;
 const url = ref(defaultUrl);
 
 const handleFullscreen = () => {
@@ -52,38 +63,30 @@ const openView = async () => {
 };
 
 const sessionId = ref<string>();
-const renewTimer = ref<NodeJS.Timeout>();
-const ticket = ref<string>();
+const renewTimer = ref<ReturnType<typeof setInterval>>();
 const confirmCb = ref<() => Promise<boolean>>();
+
+function clearRenewTimer() {
+  if (renewTimer.value !== undefined) {
+    clearInterval(renewTimer.value);
+    renewTimer.value = undefined;
+  }
+}
+
 const open = async (id: string, fn: () => Promise<boolean>) => {
+  clearRenewTimer();
   dialogVisible.value = true;
   sessionId.value = id;
   confirmCb.value = fn;
-
-  const res = await client.browser.session.$post({
-    json: {
-      sessionId: id,
-      args: [],
-    },
-  });
-  if (res.ok) {
-    const payload = await res.json();
-    ticket.value = payload.ticket;
-    url.value = payload.url;
-    renewTimer.value = setInterval(async () => {
-      if (!dialogVisible.value && renewTimer.value) {
-        clearInterval(renewTimer.value!);
-        renewTimer.value = undefined;
-        return;
-      }
-      await client.browser.session.renew.$post({
-        json: {
-          ticket: ticket.value!,
-          sessionId: sessionId.value!,
-        },
-      });
-    }, 10000);
-  }
+  renewTimer.value = setInterval(async () => {
+    const sid = sessionId.value;
+    if (!sid) return;
+    if (!dialogVisible.value) {
+      clearRenewTimer();
+      return;
+    }
+    await client.browser.session[":id"].renew.$post({ param: { id: sid } });
+  }, 10000);
 };
 
 const handleConfirm = async () => {
@@ -99,16 +102,13 @@ const handleConfirm = async () => {
 
 const close = () => {
   dialogVisible.value = false;
-  clearInterval(renewTimer.value!);
+  clearRenewTimer();
 
-  if (sessionId.value && ticket.value) {
-    client.browser.session.close.$post({
-      json: {
-        sessionId: sessionId.value!,
-        ticket: ticket.value!,
-      },
-    });
+  const sid = sessionId.value;
+  if (sid) {
+    client.browser.session[":id"].close.$post({ param: { id: sid } });
   }
+  sessionId.value = undefined;
 };
 
 defineExpose({

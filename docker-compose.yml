@@ -7,4 +7,9 @@ services:
     ports:
       - "5801:5801"
       - "5800:5800"
+    volumes:
+      - playwright-data:/data
     shm_size: "2gb"
+
+volumes:
+  playwright-data:
