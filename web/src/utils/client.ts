@@ -1,4 +1,4 @@
-import type { AppType } from "@repo/server/types";
+import type { AppType } from "../../../src/app";
 import { hc } from "hono/client";
 import router from "../router";
 

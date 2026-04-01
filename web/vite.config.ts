@@ -10,9 +10,9 @@ import Components from "unplugin-vue-components/vite";
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "/admin/",
+  base: "/web/",
   build: {
-    outDir: "../server/public/admin",
+    outDir: "../src/public/web",
   },
   plugins: [
     vue(),

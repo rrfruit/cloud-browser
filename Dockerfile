@@ -20,6 +20,7 @@ RUN npm install
 
 RUN node ensureBinary.js
 
+COPY public ./public
 COPY src ./src
 
 RUN npm run build
