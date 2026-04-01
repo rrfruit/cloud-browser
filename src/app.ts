@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { logger } from "hono/logger";
+import { cors } from "hono/cors";
 import { serveStatic } from "@hono/node-server/serve-static";
 import path from "node:path";
 import healthRouter from "./routes/health.js";

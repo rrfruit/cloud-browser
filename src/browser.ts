@@ -138,10 +138,15 @@ setInterval(async () => {
   }
 }, 30_000); // 30秒检查一次
 
+function getSessions() {
+  return Object.values(sessions).map(({ id, expiresAt }) => ({ id, expiresAt }));
+}
+
 export const cloudBrowserClient = {
   createBrowser,
   renewSession,
   closeSession,
   deleteProfile,
   startSessionKeepAlive,
+  getSessions,
 }
