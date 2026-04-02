@@ -4,6 +4,19 @@ import { access, readdir, rm } from 'node:fs/promises';
 
 export const VNC_URL = process.env.VNC_URL!;
 
+function cuidToSeed(cuid: string) {
+  // 使用简单的哈希算法
+  let hash = 0;
+  for (let i = 0; i < cuid.length; i++) {
+    const char = cuid.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // 转换为32位整数
+  }
+  
+  // 取绝对值并映射到 0-99999
+  return Math.abs(hash) % 100000;
+}
+
 function getFirefoxProfilePath(id: string) {
   return `/data/profiles/${id}`;
 }
@@ -65,7 +78,7 @@ async function createBrowser(id: string, options: CreateBrowserOptions = {}) {
 
     browser = await launchPersistentContext({
       ...options,
-      args: [...defaultArgs, ...(options.args ?? [])],
+      args: [...defaultArgs, ...(options.args ?? []), `--fingerprint=${cuidToSeed(id)}`],
       headless: false,
       userDataDir: profilePath,
       viewport: { width: 1366, height: 768 }
