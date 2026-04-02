@@ -1,6 +1,8 @@
-import type { BrowserContext } from "playwright-core";
-import { launchPersistentContext, type LaunchPersistentContextOptions } from 'cloakbrowser';
+import type { Browser, LaunchOptions } from "puppeteer-core";
+import { launch } from 'cloakbrowser/puppeteer';
 import { access, readdir, rm } from 'node:fs/promises';
+
+
 
 export const VNC_URL = process.env.VNC_URL!;
 
@@ -19,7 +21,7 @@ function getProfileSingletonPaths(id: string) {
 
 type Session = {
   id: string;
-  browser: BrowserContext;
+  browser: Browser;
   cdpPort: number;
   endpointURL: string;
   expiresAt: number;
@@ -33,8 +35,6 @@ const defaultArgs: string[] = [
   '--disable-setuid-sandbox',
   '--window-position=0,0',
   '--start-maximized', // 让浏览器一出来就最大化铺满屏幕
-  '--remote-allow-origins=*',
-  '--remote-debugging-port=5802'
 ]
 
 export function getSession(sessionId: string) {
@@ -45,14 +45,14 @@ export type CreateBrowserOptions = {
   args?: string[];
   userDataDir?: string;
   requireExistingProfile?: boolean;
-} & Omit<LaunchPersistentContextOptions, 'args' | 'userDataDir'>;
+} & Omit<LaunchOptions, 'args' | 'userDataDir'>;
 
 async function createBrowser(id: string, options: CreateBrowserOptions = {}) {
   if (sessions[id]) {
     throw new Error('Session already exists');
   }
 
-  let browser: BrowserContext | undefined;
+  let browser: Browser | undefined;
   try {
     const profilePath = getFirefoxProfilePath(id);
     if (options.requireExistingProfile) {
@@ -63,12 +63,16 @@ async function createBrowser(id: string, options: CreateBrowserOptions = {}) {
       }
     }
 
-    browser = await launchPersistentContext({
+    const args = [
+      ...defaultArgs,
+      ...(options.args ?? []),
+      '--user-data-dir=' + profilePath,
+      '--remote-debugging-port=9223',
+    ];
+    browser = await launch({
       ...options,
-      args: [...defaultArgs, ...(options.args ?? [])],
+      args,
       headless: false,
-      userDataDir: profilePath,
-      viewport: { width: 1366, height: 768 }
     });
 
     browser.on("close", () => {
@@ -78,11 +82,13 @@ async function createBrowser(id: string, options: CreateBrowserOptions = {}) {
     const page = await browser.newPage();
     await page.goto('https://baidu.com');
 
+    const endpointURL = browser.wsEndpoint();
+
     const session: Session = {
       id,
       browser,
-      cdpPort: 9223,
-      endpointURL: 'ws://localhost:9223',
+      cdpPort: Number(endpointURL.split(':')[2]),
+      endpointURL,
       expiresAt: Date.now() + 60 * 60 * 1000,
     }
     sessions[id] = session;

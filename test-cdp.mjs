@@ -1,7 +1,7 @@
-import { chromium } from 'playwright-core';
+import puppeteer from 'puppeteer-core';
 
-const browser = await chromium.connectOverCDP({
-  wsEndpoint: 'ws://localhost:5802',
+const browser = await puppeteer.connect({
+  browserURL: 'http://localhost:9223',
 });
 
 const page = await browser.newPage();

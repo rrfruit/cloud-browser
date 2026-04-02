@@ -31,6 +31,12 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="Endpoint URL" min-width="200">
+        <template #default="{ row }">
+          <span>{{ row.endpointURL }}</span>
+        </template>
+      </el-table-column>
+
       <el-table-column label="操作" width="220" align="center">
         <template #default="{ row }">
           <div class="flex items-center justify-center gap-2">
