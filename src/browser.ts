@@ -1,5 +1,5 @@
 import type { BrowserContext } from "playwright-core";
-import { launchPersistentContext, type LaunchPersistentContextOptions } from 'cloakbrowser';
+import { launchPersistentContext, type LaunchPersistentContextOptions, launch } from 'cloakbrowser';
 import { access, readdir, rm } from 'node:fs/promises';
 
 export const VNC_URL = process.env.VNC_URL!;
@@ -20,14 +20,10 @@ function getProfileSingletonPaths(id: string) {
 type Session = {
   id: string;
   browser: BrowserContext;
+  cdpPort: number;
+  endpointURL: string;
   expiresAt: number;
 }
-
-type Profile = {
-  id: string;
-  active: boolean;
-  expiresAt: number | null;
-};
 
 const sessions: Record<string, Session> = {};
 
@@ -38,8 +34,12 @@ const defaultArgs: string[] = [
   '--window-position=0,0',
   '--start-maximized', // 让浏览器一出来就最大化铺满屏幕
   '--remote-allow-origins=*',
-  '--remote-debugging-port=9223'
+  '--remote-debugging-port=5802'
 ]
+
+export function getSession(sessionId: string) {
+  return sessions[sessionId];
+}
 
 export type CreateBrowserOptions = {
   args?: string[];
@@ -68,6 +68,7 @@ async function createBrowser(id: string, options: CreateBrowserOptions = {}) {
       args: [...defaultArgs, ...(options.args ?? [])],
       headless: false,
       userDataDir: profilePath,
+      viewport: { width: 1366, height: 768 }
     });
 
     browser.on("close", () => {
@@ -80,6 +81,8 @@ async function createBrowser(id: string, options: CreateBrowserOptions = {}) {
     const session: Session = {
       id,
       browser,
+      cdpPort: 9223,
+      endpointURL: 'ws://localhost:9223',
       expiresAt: Date.now() + 60 * 60 * 1000,
     }
     sessions[id] = session;
@@ -93,7 +96,7 @@ async function createBrowser(id: string, options: CreateBrowserOptions = {}) {
 }
 
 async function renewSession(sessionId: string) {
-  const session = sessions[sessionId];
+  const session = getSession(sessionId);
   if (!session) {
     throw new Error('Session not found');
   }
@@ -103,7 +106,7 @@ async function renewSession(sessionId: string) {
 
 async function closeSession(sessionId: string) {
   try {
-    const session = sessions[sessionId];
+    const session = getSession(sessionId);
     if (!session) {
       throw new Error('Session not found');
     }
@@ -116,14 +119,14 @@ async function closeSession(sessionId: string) {
 }
 
 async function deleteProfile(sessionId: string) {
-  if (sessions[sessionId]) {
+  if (getSession(sessionId)) {
     await closeSession(sessionId);
   }
   await rm(getFirefoxProfilePath(sessionId), { recursive: true, force: true });
 }
 
 async function unlockProfile(profileId: string) {
-  if (sessions[profileId]) {
+  if (getSession(profileId)) {
     await closeSession(profileId);
   }
 
@@ -137,7 +140,7 @@ async function unlockProfile(profileId: string) {
 }
 
 function startSessionKeepAlive(sessionId: string, maxKeepAliveTimeMs: number = 60 * 60 * 1000) {
-  const session = sessions[sessionId];
+  const session = getSession(sessionId);
   if (!session) {
     throw new Error('Session not found');
   }
@@ -150,7 +153,7 @@ function startSessionKeepAlive(sessionId: string, maxKeepAliveTimeMs: number = 6
       clearInterval(keepAlive);
       return;
     }
-    if (!sessions[sessionId]) {
+    if (!getSession(sessionId)) {
       clearInterval(keepAlive);
       return;
     }
@@ -174,16 +177,18 @@ function getSessions() {
   return Object.values(sessions).map(({ id, expiresAt }) => ({ id, expiresAt }));
 }
 
-async function getProfiles(): Promise<Profile[]> {
+async function getProfiles() {
   try {
     const entries = await readdir('/data/profiles', { withFileTypes: true });
     return entries
       .filter((entry) => entry.isDirectory())
       .map((entry) => {
-        const session = sessions[entry.name];
+        const session = getSession(entry.name);
         return {
           id: entry.name,
           active: Boolean(session),
+          cdpPort: session?.cdpPort ?? null,
+          endpointURL: session?.endpointURL ?? null,
           expiresAt: session?.expiresAt ?? null,
         };
       })
@@ -198,6 +203,7 @@ async function getProfiles(): Promise<Profile[]> {
 }
 
 export const cloudBrowserClient = {
+  getSession,
   createBrowser,
   renewSession,
   closeSession,

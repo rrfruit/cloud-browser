@@ -13,21 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxcb1 libxext6 libxshmfence1 \
     libglib2.0-0 libgtk-3-0 libpangocairo-1.0-0 libcairo-gobject2 \
     libgdk-pixbuf-2.0-0 libxss1 libxtst6 fonts-liberation \
+    fonts-noto-cjk fonts-wqy-zenhei fonts-wqy-microhei \
     curl ca-certificates \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
+    && fc-cache -fv \
     && rm -rf /var/lib/apt/lists/*
-
-        # && fc-cache -fv \
-
-        # fonts-noto-cjk fonts-wqy-zenhei fonts-wqy-microhei \
-
-
-# # 2. 安装 Node.js (修复版：补充 CA 证书，确保成功拉取 NodeSource 脚本)
-# RUN apt-get update && \
-#     apt-get install -y curl ca-certificates gnupg && \
-#     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-#     apt-get install -y nodejs
 
 # (可选：加一个验证步骤，防止以后再静默失败)
 RUN node -v && npm -v

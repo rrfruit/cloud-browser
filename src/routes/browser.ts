@@ -13,6 +13,20 @@ const router = new Hono()
     const result = await cloudBrowserClient.createBrowser(body.sessionId!);
     return c.json(result, 201);
   })
+  .get("/session/:id", async (c) => {
+    const sessionId = c.req.param("id");
+    const result = cloudBrowserClient.getSession(sessionId!);
+    return c.json(result, 200);
+  })
+  .get("/session/:id/getOrCreate", async (c) => {
+    const sessionId = c.req.param("id");
+    const result = cloudBrowserClient.getSession(sessionId!);
+    if (result) {
+      return c.json(result, 200);
+    }
+    const newResult = await cloudBrowserClient.createBrowser(sessionId!);
+    return c.json(newResult, 201);
+  })
   .post("/session/:id/renew", async (c) => {
     const sessionId = c.req.param("id");
     const result = await cloudBrowserClient.renewSession(sessionId!);

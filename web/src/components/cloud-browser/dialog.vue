@@ -34,11 +34,7 @@
       class="flex flex-col justify-center items-center"
       :style="browserContainerStyle"
     >
-      <iframe
-        :src="url"
-        :style="iframeStyle"
-        frameborder="0"
-      />
+      <iframe :src="url" :style="iframeStyle" frameborder="0" />
     </div>
   </el-dialog>
 </template>
@@ -99,15 +95,22 @@ const open = async (id: string, fn: () => Promise<boolean>) => {
   dialogVisible.value = true;
   sessionId.value = id;
   confirmCb.value = fn;
-  renewTimer.value = setInterval(async () => {
-    const sid = sessionId.value;
-    if (!sid) return;
-    if (!dialogVisible.value) {
-      clearRenewTimer();
-      return;
-    }
-    await client.browser.session[":id"].renew.$post({ param: { id: sid } });
-  }, 10000);
+
+  const res = await client.browser.session[":id"].getOrCreate.$get({
+    param: { id },
+  });
+  if (res.ok) {
+    const result = await res.json();
+    renewTimer.value = setInterval(async () => {
+      const sid = sessionId.value;
+      if (!sid) return;
+      if (!dialogVisible.value) {
+        clearRenewTimer();
+        return;
+      }
+      await client.browser.session[":id"].renew.$post({ param: { id: sid } });
+    }, 10000);
+  }
 };
 
 const handleConfirm = async () => {
